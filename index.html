@@ -1,0 +1,1351 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>중앙해장 역삼점 시뮬레이터</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  color-scheme: light;
+  --bg:#f4f3f0; --surface:#fcfcfb; --surface-2:#f0efec; --border:#e2e0da; --grid:#ebe9e4;
+  --text:#0b0b0b; --text-2:#52514e; --text-3:#85847e;
+  --s1:#2a78d6; --s2:#eb6834; --neutral:#b4b2ab; --ref:#85847e;
+  --good:#0ca30c; --good-text:#006300; --bad:#d03b3b; --bad-text:#b42727;
+  --c1:#2a78d6; --c2:#eb6834; --c3:#1baf7a; --c4:#eda100; --c5:#e87ba4; --c6:#008300; --c7:#6250d6; --c8:#e34948;
+}
+@media (prefers-color-scheme: dark){
+  :root:where(:not([data-theme="light"])){
+    color-scheme: dark;
+    --bg:#121211; --surface:#1a1a19; --surface-2:#232321; --border:#30302d; --grid:#2a2a28;
+    --text:#f0efec; --text-2:#c3c2b7; --text-3:#8f8e86;
+    --s1:#3987e5; --s2:#d95926; --neutral:#5f5e59; --ref:#8f8e86;
+    --good:#0ca30c; --good-text:#4fcf4f; --bad:#d03b3b; --bad-text:#f07a7a;
+    --c1:#3987e5; --c2:#d95926; --c3:#199e70; --c4:#c98500; --c5:#d55181; --c6:#008300; --c7:#9085e9; --c8:#e66767;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#121211; --surface:#1a1a19; --surface-2:#232321; --border:#30302d; --grid:#2a2a28;
+  --text:#f0efec; --text-2:#c3c2b7; --text-3:#8f8e86;
+  --s1:#3987e5; --s2:#d95926; --neutral:#5f5e59; --ref:#8f8e86;
+  --good:#0ca30c; --good-text:#4fcf4f; --bad:#d03b3b; --bad-text:#f07a7a;
+  --c1:#3987e5; --c2:#d95926; --c3:#199e70; --c4:#c98500; --c5:#d55181; --c6:#008300; --c7:#9085e9; --c8:#e66767;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font-family:Pretendard,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.num{font-variant-numeric:tabular-nums}
+button{font:inherit}
+header.top{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
+.top-inner{max-width:1480px;margin:0 auto;padding:12px 20px;display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center}
+.brand{display:flex;flex-direction:column;margin-right:auto}
+.brand b{font-size:17px;letter-spacing:-.01em}
+.brand span{font-size:12px;color:var(--text-3)}
+.seg{display:inline-flex;background:var(--surface-2);border:1px solid var(--border);border-radius:9px;padding:2px;flex-wrap:wrap}
+.seg button{border:0;background:transparent;color:var(--text-2);font-size:13px;padding:5px 11px;border-radius:7px;cursor:pointer;white-space:nowrap}
+.seg button.on{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.08);font-weight:600}
+.btn{border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;padding:6px 11px;border-radius:8px;cursor:pointer;white-space:nowrap}
+.btn:hover{background:var(--surface-2)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.sm{font-size:12px;padding:4px 9px;border-radius:7px}
+.ctl-label{font-size:12px;color:var(--text-3);margin-right:4px}
+.ctl{display:flex;align-items:center;gap:6px}
+details.menu{position:relative}
+details.menu summary{list-style:none}
+details.menu summary::-webkit-details-marker{display:none}
+details.menu .menu-body{position:absolute;right:0;top:calc(100% + 6px);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:6px;min-width:190px;box-shadow:0 8px 24px rgba(0,0,0,.12);display:flex;flex-direction:column;z-index:30}
+details.menu .menu-body button{border:0;background:transparent;color:var(--text);text-align:left;padding:7px 10px;border-radius:6px;cursor:pointer;font-size:13px}
+details.menu .menu-body button:hover{background:var(--surface-2)}
+
+.wrap{max-width:1480px;margin:0 auto;padding:18px 20px 40px;display:grid;grid-template-columns:350px minmax(0,1fr);grid-template-areas:"panel kpis" "panel main";gap:20px;align-items:start}
+.wrap>.kpis{grid-area:kpis} .wrap>aside{grid-area:panel;align-self:start} .wrap>main{grid-area:main}
+aside.panel{position:sticky;top:76px;max-height:calc(100vh - 92px);overflow:auto;background:var(--surface);border:1px solid var(--border);border-radius:14px}
+aside.panel::-webkit-scrollbar{width:8px}
+aside.panel::-webkit-scrollbar-thumb{background:var(--border);border-radius:8px}
+.site-box{padding:14px 16px 12px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:2}
+.site-box .t{font-size:12px;color:var(--text-3);margin-bottom:6px;display:flex;justify-content:space-between}
+.site-tabs{display:flex;flex-wrap:wrap;gap:6px}
+.site-tab{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text-2);padding:5px 10px;border-radius:99px;cursor:pointer;font-size:13px;max-width:100%}
+.site-tab span.n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px}
+.site-tab.on{background:var(--surface);color:var(--text);font-weight:600;border-color:var(--text-3)}
+.sw{width:10px;height:10px;border-radius:3px;flex:none;display:inline-block}
+.site-actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.sync{display:flex;align-items:flex-start;gap:7px;font-size:12.5px;color:var(--text-2);margin-top:10px}
+.sync input{accent-color:var(--s1);margin-top:2px}
+details.grp{border-bottom:1px solid var(--border)}
+details.grp:last-child{border-bottom:0}
+details.grp summary{list-style:none;cursor:pointer;padding:11px 16px;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+details.grp summary::-webkit-details-marker{display:none}
+details.grp summary .sub{font-weight:400;color:var(--text-3);font-size:12px}
+details.grp summary::after{content:"";width:7px;height:7px;border-right:1.5px solid var(--text-3);border-bottom:1.5px solid var(--text-3);transform:rotate(-45deg);margin-left:8px;transition:transform .15s;flex:none}
+details.grp[open] summary::after{transform:rotate(45deg)}
+.grp-body{padding:0 16px 12px}
+.sublabel{font-size:11px;font-weight:600;color:var(--text-3);letter-spacing:.04em;margin:10px 0 2px}
+.field{padding:6px 0}
+.field .row{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.field label{font-size:13px;color:var(--text-2);display:flex;align-items:center;gap:6px}
+.field label .dot{width:6px;height:6px;border-radius:50%;background:var(--s2);display:none;flex:none}
+.field.changed label .dot{display:inline-block}
+.field label .cm{font-size:10px;font-weight:600;color:var(--s1);border:1px solid currentColor;border-radius:4px;padding:0 3px;display:none}
+.syncing .field.common label .cm{display:inline-block}
+.field .val{display:flex;align-items:center;gap:4px}
+.field input[type=number]{width:86px;text-align:right;font:inherit;font-variant-numeric:tabular-nums;font-size:13px;background:var(--surface-2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:3px 6px}
+.field input.wide,.field input[type=text],.field textarea{width:100%;text-align:left;font:inherit;font-size:13px;background:var(--surface-2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:5px 7px;margin-top:3px}
+.field textarea{resize:vertical;min-height:52px}
+.field .unit{font-size:12px;color:var(--text-3);min-width:24px}
+.field input[type=range]{width:100%;margin:4px 0 0;accent-color:var(--s1);height:18px}
+.field .hint{font-size:11.5px;color:var(--text-3);margin-top:1px}
+.field select{font:inherit;font-size:13px;background:var(--surface-2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:3px 6px;max-width:190px}
+.derived{font-size:12px;color:var(--text-2);background:var(--surface-2);border-radius:8px;padding:7px 10px;margin-top:8px}
+.derived b{color:var(--text)}
+
+main{min-width:0;display:flex;flex-direction:column;gap:20px}
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 14px 12px;min-width:0}
+.kpi .k{font-size:12px;color:var(--text-3);display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi .v{font-size:24px;font-weight:700;letter-spacing:-.02em;margin-top:2px;white-space:nowrap}
+.kpi .v small{font-size:13px;font-weight:500;color:var(--text-2);margin-left:2px}
+.kpi .d{font-size:12px;color:var(--text-3);margin-top:3px;line-height:1.4}
+.pos{color:var(--good-text)} .neg{color:var(--bad-text)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);overflow-x:auto}
+.tabs button{border:0;background:transparent;color:var(--text-2);padding:9px 14px;font-size:14px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tabs button.on{color:var(--text);font-weight:700;border-bottom-color:var(--text)}
+.tabpane{display:none;flex-direction:column;gap:20px}
+.tabpane.on{display:flex}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 18px;min-width:0}
+.card h2{font-size:15px;margin:0;letter-spacing:-.01em}
+.card .desc{font-size:12.5px;color:var(--text-3);margin:2px 0 12px}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}
+.chart{position:relative;height:300px}
+.chart.tall{height:340px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--text-2);margin-bottom:8px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.legend i.line{height:2px;width:14px;border-radius:2px;vertical-align:3px}
+.legend i.dash{height:0;width:14px;border-top:2px dashed;border-radius:0;vertical-align:3px;background:none!important}
+
+table.pl{width:100%;border-collapse:collapse;font-size:13px}
+table.pl th,table.pl td{padding:6px 8px;border-bottom:1px solid var(--grid);text-align:right;white-space:nowrap}
+table.pl th:first-child,table.pl td:first-child{text-align:left}
+table.pl thead th{font-size:12px;color:var(--text-3);font-weight:500;border-bottom:1px solid var(--border)}
+table.pl tr.sum td{font-weight:700;background:var(--surface-2)}
+table.pl tr.sub td:first-child{padding-left:22px}
+table.pl tr.sub td{color:var(--text-2)}
+table.pl tr.grp td{font-size:11.5px;font-weight:600;color:var(--text-3);letter-spacing:.03em;padding-top:14px;border-bottom:1px solid var(--border)}
+table.pl td.best{font-weight:700}
+.tag{display:inline-block;font-size:10.5px;font-weight:600;padding:0 5px;border-radius:4px;margin-left:5px;vertical-align:1px;background:color-mix(in srgb,var(--good) 15%,transparent);color:var(--good-text)}
+.tablewrap{overflow-x:auto}
+.note{font-size:12.5px;color:var(--text-2);background:var(--surface-2);border-radius:10px;padding:10px 12px;margin-top:12px}
+.note b{color:var(--text)}
+.inline-inputs{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-bottom:12px}
+.inline-inputs label{font-size:12.5px;color:var(--text-2);display:flex;align-items:center;gap:6px}
+.inline-inputs input[type=number]{width:72px;text-align:right;font:inherit;font-size:13px;background:var(--surface-2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:3px 6px}
+.goal-out{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.goal-out div{background:var(--surface-2);border-radius:10px;padding:10px 12px}
+.goal-out .k{font-size:12px;color:var(--text-3)}
+.goal-out .v{font-size:18px;font-weight:700}
+table.score{width:100%;border-collapse:collapse;font-size:13px}
+table.score th,table.score td{padding:6px 6px;border-bottom:1px solid var(--grid);text-align:center;white-space:nowrap}
+table.score th:first-child,table.score td:first-child{text-align:left}
+table.score thead th{font-size:12px;color:var(--text-3);font-weight:500}
+table.score input{font:inherit;font-size:13px;background:var(--surface-2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:2px 4px;width:48px;text-align:center}
+table.score tr.total td{font-weight:700;background:var(--surface-2)}
+ul.check{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:1fr 1fr;gap:8px 20px}
+ul.check li{display:flex;gap:9px;align-items:flex-start;font-size:13px}
+ul.check input{margin-top:3px;accent-color:var(--s1);width:15px;height:15px;flex:none}
+ul.check li.done span{color:var(--text-3);text-decoration:line-through}
+ul.check li b{display:block}
+ul.check li small{color:var(--text-3)}
+footer{font-size:12px;color:var(--text-3);text-align:center;padding:10px 20px 30px}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:var(--bg);padding:8px 14px;border-radius:9px;font-size:13px;opacity:0;transition:all .2s;pointer-events:none;z-index:50}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media (max-width:1240px){ .kpis{grid-template-columns:repeat(3,minmax(0,1fr))} .goal-out{grid-template-columns:repeat(2,minmax(0,1fr))} }
+@media (max-width:980px){
+  .wrap{grid-template-columns:minmax(0,1fr);grid-template-areas:"kpis" "panel" "main"}
+  header.top{position:static}
+  aside.panel{position:static;max-height:none}
+  .site-box{position:static}
+  .grid2{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:640px){
+  .wrap{padding:14px 16px 40px}
+  .top-inner{padding:10px 16px}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .kpi .v{font-size:20px}
+  ul.check{grid-template-columns:1fr}
+  .chart,.chart.tall{height:260px}
+}
+@media print{
+  header.top,aside.panel,.tabs,footer{display:none!important}
+  .wrap{display:block;padding:0}
+  body{background:#fff}
+  .card{break-inside:avoid;border-color:#ddd}
+  .kpis{grid-template-columns:repeat(6,1fr);margin-bottom:12px}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-inner">
+    <div class="brand"><b>중앙해장 역삼점 동업 시뮬레이터</b><span>기준: 중앙해장 시뮬레이션(261015).xlsx · 서초점 2026년 1~3월 결산</span></div>
+    <div class="ctl"><span class="ctl-label">비용 프리셋</span>
+      <div class="seg" id="presetSeg">
+        <button data-p="excel">엑셀 원모델</button>
+        <button data-p="seocho">서초 실적 보정</button>
+        <button data-p="cons">보수적</button>
+      </div>
+    </div>
+    <div class="ctl"><span class="ctl-label">손익 기준</span>
+      <div class="seg" id="basisSeg">
+        <button data-b="y1">1년차 평균</button>
+        <button data-b="y2">정상화</button>
+      </div>
+    </div>
+    <button class="btn" id="shareBtn" title="모든 후보지와 입력값을 담은 링크 복사">링크 복사</button>
+    <details class="menu" id="dataMenu"><summary class="btn">데이터</summary>
+      <div class="menu-body">
+        <button id="exportJson">JSON으로 저장</button>
+        <button id="importJson">JSON 불러오기</button>
+        <button id="exportCsv">비교표 CSV 내보내기</button>
+        <button id="printBtn">인쇄 / PDF</button>
+        <button id="resetAll">전체 초기화</button>
+      </div>
+    </details>
+    <input type="file" id="fileIn" accept="application/json,.json" hidden>
+    <button class="btn" id="themeBtn" aria-label="테마 전환">테마</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <section class="kpis" id="kpis"></section>
+  <aside class="panel" id="panel">
+    <div class="site-box">
+      <div class="t"><span>편집 중인 후보지</span><span id="siteCount"></span></div>
+      <div class="site-tabs" id="siteTabs"></div>
+      <div class="site-actions">
+        <button class="btn sm" id="addSite">+ 새 후보지</button>
+        <button class="btn sm" id="dupSite">복제</button>
+        <button class="btn sm" id="resetSite">이 후보지 초기화</button>
+        <button class="btn sm" id="delSite">삭제</button>
+      </div>
+      <label class="sync"><input type="checkbox" id="syncAll"><span><b>공통 가정 모든 후보지에 적용</b><br>원가율·급여·수수료·세금·동업 조건 등 <span style="color:var(--s1)">공통</span> 표시 항목을 바꾸면 전체 후보지에 반영</span></label>
+    </div>
+    <div id="fields"></div>
+  </aside>
+
+  <main>
+    <nav class="tabs" id="tabs">
+      <button data-t="single">단일 분석</button>
+      <button data-t="compare">후보지 비교</button>
+      <button data-t="risk">리스크</button>
+      <button data-t="deal">동업·엑시트</button>
+    </nav>
+
+    <div class="tabpane" id="tab-single">
+      <div class="grid2">
+        <section class="card">
+          <h2>월 손익 구조</h2>
+          <p class="desc">매출에서 비용을 차례로 뺀 영업이익 (단위: 만원)</p>
+          <div class="chart"><canvas id="cWater"></canvas></div>
+        </section>
+        <section class="card">
+          <h2>매출 변화에 따른 영업이익</h2>
+          <p class="desc">현재 가정의 매출을 60~140%로 움직였을 때 (단위: 만원)</p>
+          <div class="legend" id="lgSens"></div>
+          <div class="chart"><canvas id="cSens"></canvas></div>
+        </section>
+      </div>
+      <div class="grid2">
+        <section class="card">
+          <h2>누적 현금흐름과 투자 회수</h2>
+          <p class="desc">회수 대상 투자금에서 출발한 60개월 누적 (렌트프리·램프업·계절성 반영, 단위: 백만원)</p>
+          <div class="legend" id="lgCum"></div>
+          <div class="chart"><canvas id="cCum"></canvas></div>
+        </section>
+        <section class="card">
+          <h2>무엇이 이익을 가장 많이 흔드나</h2>
+          <p class="desc">주요 가정을 각각 ±10% 바꿨을 때 월 영업이익 변화 (단위: 만원)</p>
+          <div class="legend" id="lgTor"></div>
+          <div class="chart"><canvas id="cTor"></canvas></div>
+        </section>
+      </div>
+      <section class="card">
+        <h2>목표 역산</h2>
+        <p class="desc">원하는 월 영업이익을 내려면 매출과 고객 수가 얼마나 필요한지</p>
+        <div class="inline-inputs"><label>목표 월 영업이익 <input type="number" id="goalOp" step="100" min="-5000" max="20000"> 만원</label></div>
+        <div class="goal-out num" id="goalOut"></div>
+      </section>
+      <div class="grid2">
+        <section class="card">
+          <h2>서초점 실적과의 비용 구조 비교</h2>
+          <p class="desc">매출 대비 비율 (%). 서초점은 2026년 1~3월 결산 평균, 가맹수수료 없음</p>
+          <div class="legend" id="lgBench"></div>
+          <div class="chart tall"><canvas id="cBench"></canvas></div>
+        </section>
+        <section class="card">
+          <h2>기존 지점 매출과 비교</h2>
+          <p class="desc">2026년 1~3월 월평균 매출과 각 후보지 시나리오 (단위: 억원). 삼성 본점(5.98억) 제외</p>
+          <div class="chart tall"><canvas id="cBranch"></canvas></div>
+        </section>
+      </div>
+      <section class="card">
+        <h2>월 손익계산서</h2>
+        <p class="desc" id="plDesc"></p>
+        <div class="tablewrap"><table class="pl num" id="plTable"></table></div>
+        <div class="note" id="plNote"></div>
+      </section>
+    </div>
+
+    <div class="tabpane" id="tab-compare">
+      <section class="card">
+        <h2>후보지 동시 비교</h2>
+        <p class="desc">각 후보지의 가정을 그대로 계산한 결과. 행마다 가장 유리한 값에 '최고' 표시</p>
+        <div class="tablewrap"><table class="pl num" id="cmpTable"></table></div>
+      </section>
+      <div class="grid2">
+        <section class="card">
+          <h2>월 영업이익</h2>
+          <p class="desc">1년차 평균과 렌트프리 종료 후 정상화 월 (단위: 만원)</p>
+          <div class="legend" id="lgCmpOp"></div>
+          <div class="chart"><canvas id="cCmpOp"></canvas></div>
+        </section>
+        <section class="card">
+          <h2>누적 현금흐름</h2>
+          <p class="desc">회수 대상 투자금에서 출발, 0선을 넘는 시점이 회수 (단위: 백만원)</p>
+          <div class="legend" id="lgCmpCum"></div>
+          <div class="chart"><canvas id="cCmpCum"></canvas></div>
+        </section>
+      </div>
+      <div class="grid2">
+        <section class="card">
+          <h2>매출 변화에 따른 영업이익</h2>
+          <p class="desc">선이 0을 지나는 매출이 손익분기점, 점은 현재 가정 위치 (단위: 만원)</p>
+          <div class="legend" id="lgCmpSens"></div>
+          <div class="chart"><canvas id="cCmpSens"></canvas></div>
+        </section>
+        <section class="card">
+          <h2>반경 50m 유동인구</h2>
+          <p class="desc">월평균 (명). 후보지 값은 패널의 '후보지 정보'에서 입력</p>
+          <div class="chart"><canvas id="cFlow"></canvas></div>
+        </section>
+      </div>
+      <section class="card">
+        <h2>정성 평가</h2>
+        <p class="desc">항목별 1~5점과 가중치(0~5). 초기 점수는 엑셀 후보지 메모를 바탕으로 한 임의 추정이니 현장 확인 후 수정하세요</p>
+        <div class="tablewrap"><table class="score num" id="scoreTable"></table></div>
+      </section>
+      <section class="card">
+        <h2>후보지 정보</h2>
+        <p class="desc">패널의 '후보지 정보'에서 수정</p>
+        <div class="tablewrap"><table class="pl" id="infoTable"></table></div>
+      </section>
+    </div>
+
+    <div class="tabpane" id="tab-risk">
+      <section class="card">
+        <h2>불확실성 설정</h2>
+        <p class="desc">각 가정이 현재 값을 중심으로 아래 범위 안에서 무작위로 움직인다고 보고 수천 번 계산합니다 (삼각분포, 모든 후보지에 동일 적용)</p>
+        <div class="inline-inputs" id="mcInputs"></div>
+      </section>
+      <div class="grid2">
+        <section class="card">
+          <h2>후보지별 영업이익 범위</h2>
+          <p class="desc">옅은 막대 P10~P90, 진한 막대 P25~P75, 검은 선 중앙값 (단위: 만원)</p>
+          <div class="chart"><canvas id="cRisk"></canvas></div>
+        </section>
+        <section class="card">
+          <h2 id="histTitle">영업이익 분포</h2>
+          <p class="desc">편집 중인 후보지의 시뮬레이션 결과 분포 (단위: 만원)</p>
+          <div class="legend" id="lgHist"></div>
+          <div class="chart"><canvas id="cHist"></canvas></div>
+        </section>
+      </div>
+      <section class="card">
+        <h2>리스크 요약</h2>
+        <p class="desc" id="riskDesc"></p>
+        <div class="tablewrap"><table class="pl num" id="riskTable"></table></div>
+      </section>
+    </div>
+
+    <div class="tabpane" id="tab-deal">
+      <section class="card">
+        <h2>동업 수익 배분과 엑시트</h2>
+        <p class="desc">패널 '동업·엑시트' 그룹의 지분·운영기간·권리금 가정 반영. 매월 현금흐름을 전액 배분한다고 가정</p>
+        <div class="tablewrap"><table class="pl num" id="dealTable"></table></div>
+        <div class="note">IRR은 오픈 시점 투자(보증금 포함) → 매월 세후 현금흐름(렌트프리·램프업·계절성 반영) → 운영기간 종료 시 보증금·운전자금 회수, 원상복구비 지출, 권리금 회수를 반영한 연환산 수익률입니다. 적자 월은 투자 비율대로 추가 부담하고, 엑시트 정산금도 투자 비율대로 나눈다고 가정했습니다.</div>
+      </section>
+      <div class="grid2">
+        <section class="card">
+          <h2>내 누적 현금</h2>
+          <p class="desc">내 투자금에서 출발한 누적 수령액 (마지막 달 엑시트 정산 포함, 단위: 백만원)</p>
+          <div class="legend" id="lgMyCum"></div>
+          <div class="chart"><canvas id="cMyCum"></canvas></div>
+        </section>
+        <section class="card">
+          <h2>운영기간별 IRR</h2>
+          <p class="desc">몇 년 운영하고 나오느냐에 따른 프로젝트 IRR (연, %)</p>
+          <div class="legend" id="lgIrr"></div>
+          <div class="chart"><canvas id="cIrr"></canvas></div>
+        </section>
+      </div>
+    </div>
+
+    <section class="card">
+      <h2>계약 전 확인 사항</h2>
+      <p class="desc">체크 상태는 이 브라우저에만 저장됩니다</p>
+      <ul class="check" id="checklist"></ul>
+    </section>
+  </main>
+</div>
+<footer>개인 검토용 시뮬레이션입니다. 세율·수수료 등은 가정이며 세무사·본사 확인이 필요합니다.</footer>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===================== 기준 데이터 ===================== */
+const HH_A = 23908 + 15670 + 11584;   // 역삼1·역삼2·서초2동 세대수
+const HH_B = 8510 + 11150;            // 도곡1·도곡2동 세대수
+const MAX_SITES = 8;
+
+// c:true = 공통 가정 (일괄 적용 대상)
+const GROUPS = [
+  {id:'info', title:'후보지 정보', sub:'이름·위치·상권', items:[
+    {m:'name', l:'이름', type:'text'},
+    {m:'addr', l:'주소', type:'text'},
+    {m:'floor', l:'층·노출', type:'text'},
+    {m:'area', l:'전용면적 (평)', type:'mnum'},
+    {m:'flow', l:'반경 50m 유동인구 (월평균)', type:'mnum'},
+    {m:'work', l:'반경 300m 직장인구', type:'mnum'},
+    {m:'avg', l:'업종 평균매출 (억, 소상공인365)', type:'mnum'},
+    {m:'openup', l:'오픈업 추정매출', type:'text'},
+    {m:'pros', l:'장점', type:'area'},
+    {m:'cons', l:'단점', type:'area'},
+    {m:'memo', l:'메모', type:'area'},
+  ]},
+  {id:'rev', title:'매출', sub:'점심·저녁·주말·배달', open:true, items:[
+    {sub:'공통'},
+    {k:'days', l:'평일 영업일수', u:'일', min:15, max:26, step:1},
+    {k:'tables', l:'테이블 수', u:'개', min:10, max:40, step:1, h:'4인석 기준'},
+    {k:'season', l:'계절·경기 보정', u:'%', min:50, max:130, step:1, h:'전체 매출에 곱함'},
+    {sub:'점심 11:30~13:30'},
+    {k:'lunchPpl', l:'테이블당 인원', u:'명', min:1, max:4, step:0.1},
+    {k:'lunchTurn', l:'회전수', u:'회', min:0.5, max:4, step:0.1},
+    {k:'lunchPrice', l:'1인 객단가', u:'원', min:8000, max:25000, step:500},
+    {sub:'저녁 18~23시'},
+    {k:'dinnerPpl', l:'테이블당 인원', u:'명', min:1, max:4, step:0.1},
+    {k:'dinnerTurn', l:'회전수', u:'회', min:0.3, max:3, step:0.1},
+    {k:'dinnerPrice', l:'1인 객단가', u:'원', min:15000, max:50000, step:1000},
+    {sub:'주말'},
+    {k:'wkDays', l:'주말 영업일수', u:'일', min:0, max:9, step:1},
+    {k:'wkRatio', l:'주말 매출 (평일 대비)', u:'%', min:0, max:150, step:5},
+    {sub:'배달'},
+    {k:'delivFreq', l:'세대당 연간 해장국 배달', u:'회', min:0, max:12, step:0.5},
+    {k:'msA', l:'점유율 (역삼1·2, 서초2)', u:'%', min:0, max:20, step:0.5},
+    {k:'msB', l:'점유율 (도곡1·2)', u:'%', min:0, max:20, step:0.5},
+    {k:'delivPrice', l:'배달 객단가', u:'원', min:10000, max:40000, step:1000},
+    {k:'delivDays', l:'배달 영업일수', u:'일', min:0, max:30, step:1},
+    {derived:'revDerived'},
+  ]},
+  {id:'time', title:'오픈 초기·계절성', sub:'타임라인·IRR에만 반영', items:[
+    {k:'rampMonths', l:'램프업 기간', u:'개월', min:0, max:12, step:1, h:'0이면 첫 달부터 100%'},
+    {k:'rampStart', l:'첫 달 매출 수준', u:'%', min:30, max:100, step:5},
+    {k:'openMonth', l:'오픈 월', u:'월', min:1, max:12, step:1},
+    {k:'offPeak', l:'비수기(6~9월) 매출 감소', u:'%', min:0, max:40, step:1, c:true, h:'기준 매출이 1~3월 성수기 수준이라면 입력'},
+    {k:'peak', l:'성수기(12~2월) 매출 증가', u:'%', min:0, max:30, step:1, c:true},
+  ]},
+  {id:'cogs', title:'매출원가·부가세', sub:'매출 대비 %', items:[
+    {k:'vat', l:'부가세 부담', u:'%', min:0, max:10, step:0.5, c:true, h:'엑셀 10% · 서초점 실제 적립 5%'},
+    {k:'ck', l:'식자재 (본사 CK)', u:'%', min:25, max:50, step:0.5, c:true, h:'서초점 본사 납품 39%'},
+    {k:'veg', l:'식자재 (야채 등)', u:'%', min:0, max:12, step:0.5, c:true},
+    {k:'liq', l:'주류·음료', u:'%', min:0, max:8, step:0.5, c:true},
+    {k:'sup', l:'소모품', u:'%', min:0, max:5, step:0.1, c:true},
+    {k:'loss', l:'로스율 (식자재 대비)', u:'%', min:0, max:5, step:0.1, c:true},
+  ]},
+  {id:'labor', title:'인건비', sub:'풀타임 환산', items:[
+    {k:'kFte', l:'주방 인원', u:'명', min:2, max:10, step:0.5},
+    {k:'kWage', l:'주방 월평균 급여', u:'만원', min:150, max:500, step:5, c:true},
+    {k:'hFte', l:'홀 인원', u:'명', min:2, max:12, step:0.5},
+    {k:'hWage', l:'홀 월평균 급여', u:'만원', min:150, max:450, step:5, c:true},
+    {k:'night', l:'야간·연장 가산', u:'%', min:0, max:30, step:1, c:true, h:'22시 이후 1.5배 등 (엑셀 미반영)'},
+    {k:'ins', l:'4대보험', u:'%', min:0, max:15, step:0.1, c:true},
+    {k:'sev', l:'퇴직금 충당', u:'%', min:0, max:10, step:0.01, c:true},
+    {k:'opSalary', l:'운영 파트너 급여', u:'만원', min:0, max:800, step:10, c:true, h:'동업자 중 운영자가 받는 급여 (비용 처리)'},
+    {derived:'laborDerived'},
+  ]},
+  {id:'store', title:'점포 비용', sub:'만원/월', items:[
+    {k:'rent', l:'월세', u:'만원', min:300, max:4000, step:10},
+    {k:'rentFree', l:'렌트프리', u:'개월', min:0, max:12, step:1},
+    {k:'mgmt', l:'관리비', u:'만원', min:0, max:300, step:5},
+    {k:'elec', l:'전기료', u:'만원', min:0, max:500, step:10},
+    {k:'gas', l:'가스·수도', u:'만원', min:0, max:500, step:10},
+  ]},
+  {id:'fees', title:'수수료·기타', sub:'', items:[
+    {k:'royalty', l:'가맹수수료', u:'%', min:0, max:8, step:0.5, c:true, h:'서초점 결산에는 없음 — 본사 확인'},
+    {k:'card', l:'카드수수료', u:'%', min:0, max:3, step:0.1, c:true},
+    {k:'delivFee', l:'배달수수료 (배달매출 대비)', u:'%', min:0, max:40, step:1, c:true},
+    {k:'rental', l:'렌탈·보안', u:'만원', min:0, max:300, step:5, c:true},
+    {k:'taxacc', l:'세무·노무', u:'만원', min:0, max:100, step:5, c:true},
+    {k:'mkt', l:'마케팅', u:'만원', min:0, max:500, step:10, c:true},
+    {k:'insur', l:'보험료', u:'만원', min:0, max:150, step:5, c:true},
+    {k:'supplies', l:'소모품비 등', u:'만원', min:0, max:300, step:10, c:true},
+  ]},
+  {id:'inv', title:'투자·세금', sub:'', items:[
+    {k:'interior', l:'인테리어 등', u:'만원', min:3000, max:40000, step:500},
+    {k:'franchise', l:'가맹비·교육비', u:'만원', min:0, max:10000, step:250, c:true},
+    {k:'wc', l:'운전자금', u:'만원', min:0, max:10000, step:500, c:true},
+    {k:'premium', l:'권리금 (지급)', u:'만원', min:0, max:30000, step:500},
+    {k:'deposit', l:'보증금', u:'만원', min:0, max:40000, step:1000},
+    {k:'restore', l:'원상복구비', u:'만원', min:0, max:10000, step:500},
+    {k:'depMonths', l:'인테리어 상각기간', u:'개월', min:12, max:120, step:12, c:true, h:'엑셀은 비고 4년, 수식 36개월'},
+    {k:'inclRestore', l:'원상복구비를 회수 대상에 포함', type:'check', c:true},
+    {k:'taxMode', l:'법인세 계산', type:'select', c:true, opts:[['excel','엑셀 원식 (전액 11%/14%)'],['prog','누진 (구간별)']]},
+    {k:'r1', l:'2억 이하 세율 (지방세 포함)', u:'%', min:0, max:30, step:0.1, c:true},
+    {k:'r2', l:'2억 초과분 세율 (지방세 포함)', u:'%', min:0, max:30, step:0.1, c:true},
+  ]},
+  {id:'deal', title:'동업·엑시트', sub:'지분·운영기간', items:[
+    {k:'myInvest', l:'내 투자 비율', u:'%', min:0, max:100, step:5, c:true, h:'총 투자금(보증금 포함) 중 내가 내는 비율'},
+    {k:'myProfit', l:'내 이익 배분 비율', u:'%', min:0, max:100, step:5, c:true, h:'운영 파트너와 다르게 나눌 수 있음'},
+    {k:'hold', l:'운영기간', u:'개월', min:12, max:120, step:6, c:true},
+    {k:'exitPremium', l:'엑시트 시 권리금 회수', u:'만원', min:0, max:40000, step:500, h:'양도 시 받을 권리금 가정'},
+    {k:'disc', l:'할인율 (NPV)', u:'%', min:0, max:20, step:0.5, c:true},
+  ]},
+];
+const ALL_ITEMS = GROUPS.flatMap(g=>g.items).filter(i=>i.k);
+const COMMON = new Set(ALL_ITEMS.filter(i=>i.c).map(i=>i.k));
+
+const EXCEL = {
+  days:22, tables:24, season:100,
+  lunchPpl:3, lunchTurn:2.5, lunchPrice:16000,
+  dinnerPpl:3, dinnerTurn:2, dinnerPrice:30000,
+  wkDays:0, wkRatio:60,
+  delivFreq:3, msA:5, msB:10, delivPrice:20000, delivDays:22,
+  rampMonths:0, rampStart:70, openMonth:1, offPeak:0, peak:0,
+  vat:10, ck:35, veg:4, liq:2.5, sup:1, loss:2,
+  kFte:4, kWage:232.32, hFte:4.5, hWage:241.71, night:0, ins:11.5, sev:8.33, opSalary:0,
+  rent:1500, rentFree:3, mgmt:100, elec:200, gas:250,
+  royalty:3, card:1.5, delivFee:20, rental:75, taxacc:35, mkt:150, insur:40, supplies:80,
+  interior:15000, franchise:3750, wc:3000, premium:0, deposit:15000, restore:3000, depMonths:36,
+  inclRestore:true, taxMode:'excel', r1:11, r2:22,
+  myInvest:50, myProfit:50, hold:60, exitPremium:0, disc:8,
+};
+// 프리셋은 비용 구조 항목만 덮어씀 (점포·매출 고유값 유지, '보수적'은 매출 할인 포함)
+const COST_KEYS = ['vat','ck','veg','liq','sup','loss','kFte','kWage','hFte','hWage','night','ins','sev','card','delivFee','royalty','taxMode','offPeak'];
+const PRESETS = {
+  excel: {},
+  seocho: {vat:5, ck:39, veg:6.5, liq:2.5, sup:0.5, loss:0, kFte:5, kWage:350, hFte:6.5, hWage:260, card:1.4, delivFee:25, taxMode:'prog'},
+  cons: {vat:5, ck:39, veg:6.5, liq:2.5, sup:0.5, loss:0, kFte:5, kWage:350, hFte:6.5, hWage:260, card:1.4, delivFee:25, taxMode:'prog', offPeak:15,
+         lunchTurn:2.0, dinnerTurn:1.5, msA:2.5, msB:5, rampMonths:4, rampStart:70},
+};
+const CRITERIA = [
+  ['vis','가시성·접근성'],['flow','유동인구'],['lunch','직장인구·점심 수요'],['dinner','저녁·회식 수요'],
+  ['comp','경쟁 강도 (낮을수록 고득점)'],['lease','임대 조건'],['env','건물·주변 환경'],
+];
+const SEED_SITES = [
+  {name:'역삼 GFC', p:{}, q:{vis:3,flow:2,lunch:4,dinner:3,comp:3,lease:4,env:4},
+   m:{addr:'서울 강남구 논현로85길 33', floor:'B1 (외부노출형, 실제 1층)', area:50, flow:1424, work:63848, avg:0.78, openup:'1.8~2.2억',
+      pros:'변호사·세무사·회계사 등 전문직 다수, 평지·사거리 코너, 깔끔한 주변·무권리', cons:'높은 경쟁, 50m 유동인구 적음(먹자골목 끝자락), 언덕 근처', memo:'렌트프리 3개월 · 푸카커피역삼 지하1층'}},
+  {name:'역삼 GS', p:{deposit:20000, mgmt:90, rentFree:0}, q:{vis:4,flow:5,lunch:4,dinner:5,comp:2,lease:3,env:2},
+   m:{addr:'서울 강남구 논현로94길 24', floor:'1층', area:49, flow:12867, work:52936, avg:1.53, openup:'2.2~2.6억',
+      pros:'기업 회식 수요, 매우 높은 유동인구', cons:'높은 경쟁, 높은 보증금, 유흥가 거리', memo:'김양 매장 자리 · 렌트프리 미확인 · 매출 가정은 GFC와 동일하게 시작'}},
+];
+const BLANK_META = {addr:'',floor:'',area:'',flow:'',work:'',avg:'',openup:'',pros:'',cons:'',memo:''};
+
+const SEOCHO = {
+  rev:[219133500,186143000,193630500],
+  profit:[26606337,12247203,15032072],
+  food:[48.4,48.2,47.2], labor:[21.7,26.0,26.7], vat:5.0, card:1.4,
+  rent:11550000, util:[1720380+1666190+655690, 1342900+1680890+742720, 1145100+1690620+477220],
+};
+const BRANCH = [
+  ['서초', [219158400,186143000,193630500]],
+  ['마곡', [197847000,164181500,169548000]],
+  ['여의도', [251323700,191198900,240212300]],
+  ['광화문', [209280400,163425000,176106000]],
+];
+const FLOW_BRANCH = [['마곡',3793],['여의도',3233],['서초',2229],['광화문',1799]];
+
+/* ===================== 계산 엔진 ===================== */
+function calc(s, opt={}){
+  const mult = (opt.mult ?? 1) * s.season/100;
+  const lunchDay = s.tables*s.lunchPpl*s.lunchTurn*s.lunchPrice;
+  const dinnerDay = s.tables*s.dinnerPpl*s.dinnerTurn*s.dinnerPrice;
+  const lunch = lunchDay*s.days*mult;
+  const dinner = dinnerDay*s.days*mult;
+  const weekend = (lunchDay+dinnerDay)*s.wkDays*(s.wkRatio/100)*mult;
+  const delivOrders = (HH_A*s.msA/100 + HH_B*s.msB/100)*s.delivFreq/12/30*s.delivDays;
+  const deliv = delivOrders*s.delivPrice*mult;
+  const sales = lunch+dinner+weekend+deliv;
+
+  const vat = sales*s.vat/100;
+  const ck = sales*s.ck/100, veg = sales*s.veg/100, liq = sales*s.liq/100, sup = sales*s.sup/100;
+  const loss = (ck+veg)*s.loss/100;
+  const cogs = ck+veg+liq+sup+loss;
+
+  const wages = (s.kFte*s.kWage + s.hFte*s.hWage)*1e4*(1+s.night/100);
+  const ins = wages*s.ins/100, sev = wages*s.sev/100;
+  const owner = s.opSalary*1e4;
+  const labor = wages+ins+sev+owner;
+
+  const rentFull = s.rent*1e4;
+  const rent = opt.rentMonth!=null ? opt.rentMonth
+             : (opt.basis==='y2' ? rentFull : rentFull*(12-Math.min(s.rentFree,12))/12);
+  const mgmt = s.mgmt*1e4;
+  const store = rent+mgmt;
+  const util = (s.elec+s.gas)*1e4;
+  const royalty = sales*s.royalty/100, card = sales*s.card/100, delivFee = deliv*s.delivFee/100;
+  const fees = royalty+card+delivFee+(s.rental+s.taxacc)*1e4;
+  const other = (s.mkt+s.insur+s.supplies)*1e4;
+  const sga = labor+store+util+fees+other;
+
+  const op = sales - vat - cogs - sga;
+  const dep = s.interior*1e4/s.depMonths;
+  const pretax = op - dep;
+  let tax = 0;
+  if (pretax>0){
+    if (s.taxMode==='excel'){ tax = pretax*((pretax*12)>2e8 ? 0.14 : 0.11); }
+    else { const a = pretax*12; tax = (a<=2e8 ? a*s.r1/100 : 2e8*s.r1/100 + (a-2e8)*s.r2/100)/12; }
+  }
+  const net = pretax - tax;
+  const cf = net + dep;
+  const upfront = (s.interior+s.franchise+s.wc+s.premium+s.deposit)*1e4;
+  const recover = (s.interior+s.franchise+s.wc+s.premium+(s.inclRestore?s.restore:0))*1e4;
+  return {lunch,dinner,weekend,deliv,delivOrders,sales,vat,ck,veg,liq,sup,loss,cogs,wages,ins,sev,owner,labor,
+    rent,mgmt,store,util,royalty,card,delivFee,fees,other,sga,op,dep,pretax,tax,net,cf,upfront,recover,
+    paybackSimple: cf>0 ? recover/cf : Infinity, roi: net*12/upfront};
+}
+function seasonFactor(s, m){
+  const cal = ((s.openMonth-1 + m-1) % 12) + 1;
+  if (cal>=6 && cal<=9) return 1 - s.offPeak/100;
+  if (cal===12 || cal<=2) return 1 + s.peak/100;
+  return 1;
+}
+function monthly(s, months){
+  const out=[];
+  for(let m=1;m<=months;m++){
+    let ramp=1;
+    if(s.rampMonths>0 && m<=s.rampMonths) ramp = s.rampStart/100 + (1-s.rampStart/100)*(m-1)/s.rampMonths;
+    out.push(calc(s,{mult:ramp*seasonFactor(s,m), rentMonth: m<=s.rentFree ? 0 : s.rent*1e4}).cf);
+  }
+  return out;
+}
+function timeline(s, months=60){
+  const rec = calc(s).recover, cfs = monthly(s, months);
+  let cum=-rec, payback=null; const pts=[{m:0,v:cum}];
+  cfs.forEach((cf,i)=>{ const prev=cum; cum+=cf; if(payback===null && cum>=0) payback = i + (cf>0 ? -prev/cf : 0); pts.push({m:i+1,v:cum}); });
+  return {pts, payback};
+}
+function exitFlows(s, hold){
+  const H = hold ?? s.hold;
+  const f=[-calc(s).upfront, ...monthly(s,H)];
+  f[H] += (s.deposit + s.wc - s.restore + s.exitPremium)*1e4;
+  return f;
+}
+function irrMonthly(f){
+  const npv = r => f.reduce((a,v,t)=>a+v/Math.pow(1+r,t),0);
+  let lo=-0.99, hi=1;
+  if (npv(lo)*npv(hi) > 0) return null;
+  for(let i=0;i<100;i++){ const mid=(lo+hi)/2; (npv(lo)*npv(mid)<=0) ? hi=mid : lo=mid; }
+  return (lo+hi)/2;
+}
+const annual = r => r==null ? null : Math.pow(1+r,12)-1;
+function npvAt(f, annualRate){ const r=Math.pow(1+annualRate,1/12)-1; return f.reduce((a,v,t)=>a+v/Math.pow(1+r,t),0); }
+function myFlows(s){
+  const f = exitFlows(s), inv=s.myInvest/100, pr=s.myProfit/100, H=s.hold;
+  const exitPart = (s.deposit + s.wc - s.restore + s.exitPremium)*1e4;
+  return f.map((v,t)=>{
+    if(t===0) return v*inv;
+    const op = t===H ? v-exitPart : v;
+    return (op>0 ? op*pr : op*inv) + (t===H ? exitPart*inv : 0);
+  });
+}
+function solve(fn, lo, hi){ // fn 증가함수의 근
+  if (fn(hi)<0 || fn(lo)>0) return null;
+  for(let i=0;i<60;i++){ const mid=(lo+hi)/2; fn(mid)>=0 ? hi=mid : lo=mid; }
+  return hi;
+}
+function bep(s, basis, after){
+  const m = solve(x=>{ const r=calc(s,{basis,mult:x}); return after ? r.pretax : r.op; }, 0, 5);
+  return m==null ? null : calc(s,{basis,mult:m}).sales;
+}
+function rng(seed){ return function(){ seed|=0; seed=seed+0x6D2B79F5|0; let t=Math.imul(seed^seed>>>15,1|seed); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function tri(u, a, c, b){ if(b<=a) return c; const fc=(c-a)/(b-a); return u<fc ? a+Math.sqrt(u*(b-a)*(c-a)) : b-Math.sqrt((1-u)*(b-a)*(b-c)); }
+function monteCarlo(s, mc, basis, seed){
+  const R=rng(seed), ops=[]; let p36=0;
+  for(let i=0;i<mc.n;i++){
+    const t={...s};
+    const turn=tri(R(),1-mc.turn/100,1,1+mc.turn/100), price=tri(R(),1-mc.price/100,1,1+mc.price/100);
+    const dv=tri(R(),Math.max(0,1-mc.deliv/100),1,1+mc.deliv/100), lab=tri(R(),1-mc.labor/100,1,1+mc.labor/100);
+    const ck=tri(R(),-mc.cogs,0,mc.cogs);
+    t.lunchTurn*=turn; t.dinnerTurn*=turn; t.lunchPrice*=price; t.dinnerPrice*=price;
+    t.msA*=dv; t.msB*=dv; t.kWage*=lab; t.hWage*=lab; t.ck=s.ck+ck;
+    const r=calc(t,{basis}); ops.push(r.op); if(r.cf>0 && r.recover/r.cf<=36) p36++;
+  }
+  const sorted=[...ops].sort((a,b)=>a-b), q=p=>sorted[Math.min(sorted.length-1,Math.floor(p*sorted.length))];
+  return {ops, p10:q(.1), p25:q(.25), p50:q(.5), p75:q(.75), p90:q(.9),
+    pLoss: ops.filter(v=>v<0).length/ops.length, p36: p36/ops.length};
+}
+
+/* ===================== 상태 ===================== */
+const LS_KEY='jh-yeoksam-sim-v2';
+let uid=0;
+function newSite(seed, slot){
+  return {id:'s'+Date.now().toString(36)+(uid++), slot, name:seed.name, preset:seed.preset||'excel',
+    p:{...EXCEL, ...(seed.p||{})}, m:{...BLANK_META, ...(seed.m||{})},
+    q:{...Object.fromEntries(CRITERIA.map(c=>[c[0],3])), ...(seed.q||{})},
+    seed: JSON.parse(JSON.stringify({name:seed.name, p:seed.p||{}, preset:seed.preset||'excel'}))};
+}
+function defaultState(){
+  const sites = SEED_SITES.map((s,i)=>newSite(s,i));
+  return {sites, active:sites[0].id, basis:'y1', sync:false, tab:'single', goal:2000,
+    w:Object.fromEntries(CRITERIA.map(c=>[c[0],c[0]==='lease'||c[0]==='flow'?3:2])),
+    mc:{n:2000, turn:25, price:10, deliv:50, cogs:3, labor:15}};
+}
+let ST = defaultState();
+const site = () => ST.sites.find(x=>x.id===ST.active) || ST.sites[0];
+const S = () => site().p;
+
+function serialize(){
+  return {v:2, basis:ST.basis, sync:ST.sync, tab:ST.tab, goal:ST.goal, w:ST.w, mc:ST.mc, active:Math.max(0,ST.sites.findIndex(x=>x.id===ST.active)),
+    sites:ST.sites.map(x=>({n:x.name, sl:x.slot, pr:x.preset, d:Object.fromEntries(Object.entries(x.p).filter(([k,v])=>v!==EXCEL[k])), m:x.m, q:x.q, sd:x.seed}))};
+}
+function deserialize(o){
+  if(!o || o.v!==2 || !Array.isArray(o.sites) || !o.sites.length) return false;
+  const st = defaultState();
+  st.sites = o.sites.slice(0,MAX_SITES).map((x,i)=>{ const s=newSite({name:x.n||`후보지 ${i+1}`, p:x.d, m:x.m, q:x.q, preset:x.pr}, (x.sl??i)%8); if(x.sd) s.seed=x.sd; return s; });
+  st.active = st.sites[Math.max(0,Math.min(o.active||0, st.sites.length-1))].id;
+  Object.assign(st, {basis:o.basis||'y1', sync:!!o.sync, tab:o.tab||'single', goal:o.goal??2000});
+  if(o.w) st.w={...st.w,...o.w}; if(o.mc) st.mc={...st.mc,...o.mc};
+  ST=st; return true;
+}
+const b64e = o => btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const b64d = s => JSON.parse(decodeURIComponent(escape(atob(s.replace(/-/g,'+').replace(/_/g,'/')))));
+function persist(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(serialize())); }catch(e){} }
+(function init(){
+  let ok=false;
+  if (location.hash.startsWith('#s=')) { try{ ok=deserialize(b64d(location.hash.slice(3))); }catch(e){} }
+  if (!ok) { try{ deserialize(JSON.parse(localStorage.getItem(LS_KEY)||'null')); }catch(e){} }
+})();
+
+/* ===================== 유틸 ===================== */
+const man = v => Math.round(v/1e4).toLocaleString('ko-KR');
+const eok = (v,d=2) => (v/1e8).toFixed(d);
+const pct = (v,d=1) => (v*100).toFixed(d)+'%';
+const sign = v => (String(v).startsWith('-')?'':'+')+v;
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const colorOf = st => cssv('--c'+(st.slot%8+1));
+function rgba(hex,a){ const h=hex.replace('#',''); const n=parseInt(h.length===3?h.split('').map(c=>c+c).join(''):h,16); return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`; }
+const esc = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const swatch = sx => `<i class="sw" style="background:${colorOf(sx)};margin-right:6px;vertical-align:-1px"></i>`;
+function toast(t){ const el=document.getElementById('toast'); el.textContent=t; el.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>el.classList.remove('show'),2000); }
+const avg=a=>a.reduce((p,c)=>p+c,0)/a.length;
+
+/* ===================== 패널 ===================== */
+const fieldsEl = document.getElementById('fields');
+function buildPanel(){
+  const wide = matchMedia('(min-width:981px)').matches;
+  let html='';
+  for(const g of GROUPS){
+    html += `<details class="grp" data-g="${g.id}" ${g.open && wide?'open':''}><summary><span>${g.title} <span class="sub">${g.sub}</span></span></summary><div class="grp-body">`;
+    for(const it of g.items){
+      if(it.sub){ html+=`<div class="sublabel">${it.sub}</div>`; continue; }
+      if(it.derived){ html+=`<div class="derived" id="${it.derived}"></div>`; continue; }
+      if(it.m){
+        const inp = it.type==='area' ? `<textarea data-m="${it.m}" id="m_${it.m}" rows="2"></textarea>`
+                  : `<input type="${it.type==='mnum'?'number':'text'}" class="wide" data-m="${it.m}" id="m_${it.m}" ${it.type==='mnum'?'step="any"':''}>`;
+        html+=`<div class="field"><label for="m_${it.m}">${it.l}</label>${inp}</div>`; continue;
+      }
+      const cm = it.c ? '<span class="cm">공통</span>' : '';
+      const cls = 'field'+(it.c?' common':'');
+      if(it.type==='check'){
+        html+=`<div class="${cls}" data-k="${it.k}"><div class="row"><label for="f_${it.k}"><span class="dot"></span>${it.l}${cm}</label><input type="checkbox" id="f_${it.k}" data-k="${it.k}"></div></div>`; continue;
+      }
+      if(it.type==='select'){
+        html+=`<div class="${cls}" data-k="${it.k}"><div class="row"><label for="f_${it.k}"><span class="dot"></span>${it.l}${cm}</label><select id="f_${it.k}" data-k="${it.k}">${it.opts.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join('')}</select></div></div>`; continue;
+      }
+      html+=`<div class="${cls}" data-k="${it.k}"><div class="row"><label for="n_${it.k}"><span class="dot" title="엑셀 원모델과 다름"></span>${it.l}${cm}</label>
+        <span class="val"><input type="number" id="n_${it.k}" data-k="${it.k}" min="${it.min}" max="${it.max}" step="${it.step}"><span class="unit">${it.u}</span></span></div>
+        <input type="range" id="r_${it.k}" data-k="${it.k}" min="${it.min}" max="${it.max}" step="${it.step}" aria-label="${it.l}">
+        ${it.h?`<div class="hint">${it.h}</div>`:''}</div>`;
+    }
+    html+='</div></details>';
+  }
+  fieldsEl.innerHTML = html;
+  fieldsEl.addEventListener('input', e=>{
+    const t=e.target;
+    if(t.dataset.m){
+      const st=site(), k=t.dataset.m;
+      if(k==='name'){ st.name=t.value||'이름 없음'; renderSiteTabs(); }
+      else st.m[k] = t.type==='number' ? (t.value===''?'':parseFloat(t.value)) : t.value;
+      schedule(); return;
+    }
+    const k=t.dataset.k; if(!k) return;
+    let v = t.type==='checkbox' ? t.checked : (t.tagName==='SELECT' ? t.value : parseFloat(t.value));
+    if(typeof v==='number' && isNaN(v)) return;
+    setParam(k,v); syncInputs(k); schedule();
+  });
+}
+function setParam(k,v){
+  const targets = (ST.sync && COMMON.has(k)) ? ST.sites : [site()];
+  targets.forEach(x=>{ x.p[k]=v; if(COST_KEYS.includes(k)) x.preset='custom'; });
+}
+function syncInputs(only){
+  const p=S();
+  for(const k in p){
+    if(only && k!==only) continue;
+    const n=document.getElementById('n_'+k), r=document.getElementById('r_'+k), f=document.getElementById('f_'+k);
+    if(n && document.activeElement!==n) n.value = p[k];
+    if(r) r.value = p[k];
+    if(f){ if(f.type==='checkbox') f.checked=!!p[k]; else f.value=p[k]; }
+  }
+  fieldsEl.querySelectorAll('.field[data-k]').forEach(el=>el.classList.toggle('changed', p[el.dataset.k]!==EXCEL[el.dataset.k]));
+  if(!only){
+    const st=site();
+    const nm=document.getElementById('m_name'); if(document.activeElement!==nm) nm.value = st.name;
+    for(const k in BLANK_META){ const el=document.getElementById('m_'+k); if(el && document.activeElement!==el) el.value = st.m[k]??''; }
+  }
+  fieldsEl.classList.toggle('syncing', ST.sync);
+  document.getElementById('syncAll').checked = ST.sync;
+}
+function renderSiteTabs(){
+  document.getElementById('siteTabs').innerHTML = ST.sites.map(x=>
+    `<button class="site-tab ${x.id===ST.active?'on':''}" data-id="${x.id}"><i class="sw" style="background:${colorOf(x)}"></i><span class="n">${esc(x.name)}</span></button>`).join('');
+  document.getElementById('siteCount').textContent = `${ST.sites.length} / ${MAX_SITES}`;
+  document.getElementById('addSite').disabled = ST.sites.length>=MAX_SITES;
+  document.getElementById('dupSite').disabled = ST.sites.length>=MAX_SITES;
+  document.getElementById('delSite').disabled = ST.sites.length<=1;
+}
+function freeSlot(){ const used=new Set(ST.sites.map(x=>x.slot)); for(let i=0;i<8;i++) if(!used.has(i)) return i; return 0; }
+document.getElementById('siteTabs').addEventListener('click',e=>{
+  const b=e.target.closest('.site-tab'); if(!b) return; ST.active=b.dataset.id; renderSiteTabs(); syncInputs(); schedule();
+});
+document.getElementById('addSite').addEventListener('click',()=>{
+  const base = site();
+  const common = Object.fromEntries([...COMMON, ...COST_KEYS].map(k=>[k, base.p[k]]));
+  const s = newSite({name:`후보지 ${ST.sites.length+1}`, p:common, preset:base.preset}, freeSlot());
+  ST.sites.push(s); ST.active=s.id; renderSiteTabs(); syncInputs(); schedule();
+  const info=fieldsEl.querySelector('details[data-g="info"]'); if(info){ info.open=true; const nm=document.getElementById('m_name'); nm.focus(); nm.select(); }
+  toast('새 후보지 추가. 비용 구조·공통 가정은 편집 중이던 후보지에서 가져왔습니다');
+});
+document.getElementById('dupSite').addEventListener('click',()=>{
+  const b=site(); const s=newSite({name:b.name+' (복제)', p:{...b.p}, m:{...b.m}, q:{...b.q}, preset:b.preset}, freeSlot());
+  ST.sites.push(s); ST.active=s.id; renderSiteTabs(); syncInputs(); schedule();
+});
+document.getElementById('delSite').addEventListener('click',()=>{
+  if(ST.sites.length<=1) return;
+  const b=site(); if(!confirm(`'${b.name}' 후보지를 삭제할까요?`)) return;
+  ST.sites=ST.sites.filter(x=>x.id!==b.id); ST.active=ST.sites[0].id; renderSiteTabs(); syncInputs(); schedule();
+});
+document.getElementById('resetSite').addEventListener('click',()=>{
+  const b=site(), seed=b.seed||{};
+  b.p={...EXCEL, ...(seed.p||{})}; b.preset=seed.preset||'excel';
+  syncInputs(); schedule(); toast(`'${b.name}' 가정을 처음 값으로 되돌렸습니다`);
+});
+document.getElementById('syncAll').addEventListener('change',e=>{ ST.sync=e.target.checked; syncInputs(); schedule();
+  if(ST.sync) toast('이제 공통 항목을 바꾸면 모든 후보지에 반영됩니다'); });
+
+/* ===================== 헤더 ===================== */
+function segSync(){
+  document.querySelectorAll('#presetSeg button').forEach(b=>b.classList.toggle('on', b.dataset.p===site().preset));
+  document.querySelectorAll('#basisSeg button').forEach(b=>b.classList.toggle('on', b.dataset.b===ST.basis));
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on', b.dataset.t===ST.tab));
+  document.querySelectorAll('.tabpane').forEach(p=>p.classList.toggle('on', p.id==='tab-'+ST.tab));
+}
+document.getElementById('presetSeg').addEventListener('click',e=>{
+  const pk=e.target.dataset.p; if(!pk) return;
+  const targets = ST.sync ? ST.sites : [site()];
+  targets.forEach(x=>{ COST_KEYS.forEach(k=>x.p[k]=EXCEL[k]); Object.assign(x.p, PRESETS[pk]); x.preset=pk; });
+  syncInputs(); schedule();
+  toast(ST.sync ? '모든 후보지에 프리셋을 적용했습니다' : `'${site().name}'에 프리셋을 적용했습니다`);
+});
+document.getElementById('basisSeg').addEventListener('click',e=>{ const b=e.target.dataset.b; if(!b) return; ST.basis=b; schedule(); });
+document.getElementById('tabs').addEventListener('click',e=>{
+  const t=e.target.dataset.t; if(!t) return; ST.tab=t; segSync(); schedule();
+  requestAnimationFrame(()=>Object.values(charts).forEach(c=>c.resize()));
+});
+document.getElementById('shareBtn').addEventListener('click',()=>{
+  const url = location.origin+location.pathname+'#s='+b64e(serialize());
+  history.replaceState(null,'',url);
+  (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(()=>toast('모든 후보지가 담긴 링크를 복사했습니다'),()=>toast('주소창의 링크를 복사하세요'));
+});
+const closeMenu=()=>document.getElementById('dataMenu').removeAttribute('open');
+function download(name, text, type){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type})); a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); }
+document.getElementById('exportJson').addEventListener('click',()=>{ closeMenu(); download('jungang-sim.json', JSON.stringify(serialize(),null,1), 'application/json'); });
+document.getElementById('importJson').addEventListener('click',()=>{ closeMenu(); document.getElementById('fileIn').click(); });
+document.getElementById('fileIn').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f) return;
+  f.text().then(t=>{ if(deserialize(JSON.parse(t))){ renderSiteTabs(); syncInputs(); schedule(); toast('불러왔습니다'); } else toast('형식이 맞지 않는 파일입니다'); }).catch(()=>toast('파일을 읽지 못했습니다'));
+  e.target.value='';
+});
+document.getElementById('exportCsv').addEventListener('click',()=>{
+  closeMenu();
+  const {rows}=compareRows();
+  const lines=[['항목',...ST.sites.map(x=>x.name)], ...rows.filter(r=>!r.grp).map(r=>[r.l, ...r.vals.map(v=>v==null||!isFinite(v)?'':Math.round(v*10000)/10000)])];
+  download('후보지비교.csv', '﻿'+lines.map(l=>l.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n'), 'text/csv');
+});
+document.getElementById('printBtn').addEventListener('click',()=>{ closeMenu(); setTimeout(()=>window.print(),100); });
+document.getElementById('resetAll').addEventListener('click',()=>{
+  closeMenu(); if(!confirm('모든 후보지와 입력값을 처음 상태로 되돌릴까요?')) return;
+  ST=defaultState(); history.replaceState(null,'',location.pathname); renderSiteTabs(); syncInputs(); schedule();
+});
+document.addEventListener('click',e=>{ const m=document.getElementById('dataMenu'); if(m.open && !m.contains(e.target)) m.removeAttribute('open'); });
+function setTheme(t){ if(t) document.documentElement.dataset.theme=t; else delete document.documentElement.dataset.theme; try{ t?localStorage.setItem('jh-theme',t):localStorage.removeItem('jh-theme'); }catch(e){} renderSiteTabs(); rebuildCharts(); }
+try{ const t=localStorage.getItem('jh-theme'); if(t) document.documentElement.dataset.theme=t; }catch(e){}
+document.getElementById('themeBtn').addEventListener('click',()=>{
+  const dark = document.documentElement.dataset.theme ? document.documentElement.dataset.theme==='dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  setTheme(dark?'light':'dark');
+});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ if(!document.documentElement.dataset.theme){ renderSiteTabs(); rebuildCharts(); } });
+
+/* ===================== 차트 ===================== */
+let charts={};
+function baseOpts(){
+  const grid=cssv('--grid'), t2=cssv('--text-2'), t3=cssv('--text-3');
+  Chart.defaults.font.family = 'Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
+  Chart.defaults.font.size = 12; Chart.defaults.color = t2;
+  return {
+    responsive:true, maintainAspectRatio:false, animation:{duration:250},
+    plugins:{legend:{display:false}, tooltip:{backgroundColor:cssv('--text'), titleColor:cssv('--bg'), bodyColor:cssv('--bg'), padding:9, cornerRadius:8, boxPadding:4}},
+    scales:{
+      x:{grid:{color:grid, drawTicks:false}, border:{color:grid}, ticks:{color:t3, padding:6}},
+      y:{grid:{color:ctx=>ctx.tick && ctx.tick.value===0 ? t3 : grid, drawTicks:false}, border:{display:false}, ticks:{color:t3, padding:8}},
+    }
+  };
+}
+function lineOpts(xTitle, xFmt, tipTitle, tipUnit){
+  const o=baseOpts();
+  o.scales.x.type='linear'; if(xTitle) o.scales.x.title={display:true,text:xTitle,color:cssv('--text-3')};
+  o.scales.x.ticks.callback=xFmt; o.scales.x.ticks.maxRotation=0;
+  o.scales.y.ticks.callback=v=>v.toLocaleString('ko-KR');
+  o.interaction={mode:'nearest',intersect:false,axis:'x'};
+  o.plugins.tooltip.callbacks={title:c=>tipTitle(c[0].parsed.x), label:c=>' '+c.dataset.label+': '+Math.round(c.parsed.y).toLocaleString('ko-KR')+tipUnit};
+  return o;
+}
+function legend(id, items){
+  document.getElementById(id).innerHTML = items.map(([lab,col,kind])=>`<span><i class="${kind||''}" style="background:${col};border-color:${col}"></i>${esc(lab)}</span>`).join('');
+}
+const valueLabels = {id:'vl', afterDatasetsDraw(ch){
+  const {ctx}=ch; ctx.save(); ctx.fillStyle=cssv('--text-2'); ctx.font='600 12px Pretendard, sans-serif'; ctx.textAlign='center';
+  ch.getDatasetMeta(0).data.forEach((b,i)=>{ const v=ch.data.datasets[0].data[i]; ctx.fillText(v.toFixed(2), b.x, b.y-6); });
+  ctx.restore();
+}};
+const valueLabelsH = {id:'vlh', afterDatasetsDraw(ch){
+  const {ctx}=ch; ctx.save(); ctx.fillStyle=cssv('--text-2'); ctx.font='12px Pretendard, sans-serif'; ctx.textBaseline='middle';
+  ch.getDatasetMeta(0).data.forEach((b,i)=>{ const v=ch.data.datasets[0].data[i]; ctx.fillText(Math.round(v).toLocaleString('ko-KR'), b.x+6, b.y); });
+  ctx.restore();
+}};
+function rebuildCharts(){
+  if(!window.Chart) return;
+  Object.values(charts).forEach(c=>c.destroy()); charts={};
+  const s1=cssv('--s1'), s2=cssv('--s2'), ref=cssv('--ref'), surf=cssv('--surface'), neu=cssv('--neutral');
+  const mk=(id,cfg)=>charts[id]=new Chart(document.getElementById(id),cfg);
+  const yMan=v=>v.toLocaleString('ko-KR');
+  const zeroGridX = o => { o.scales.x.grid.color=ctx=>ctx.tick && ctx.tick.value===0 ? cssv('--text-3') : cssv('--grid'); };
+  let o=baseOpts();
+  o.plugins.tooltip.callbacks={label:c=>{const d=c.raw; return ' '+Math.round(Math.abs(d[1]-d[0])).toLocaleString('ko-KR')+'만원';}};
+  o.scales.y.ticks.callback=yMan; o.scales.x.ticks.maxRotation=0; o.scales.x.ticks.autoSkip=false; o.scales.x.ticks.font={size:11};
+  mk('cWater',{type:'bar',data:{labels:[],datasets:[{data:[],backgroundColor:[],borderRadius:4,borderSkipped:false,maxBarThickness:46}]},options:o});
+  o=lineOpts('월매출 (억원)', v=>v.toFixed(1), x=>'월매출 '+x.toFixed(2)+'억', '만원');
+  mk('cSens',{type:'line',data:{datasets:[
+    {label:'현재 후보지',data:[],borderColor:s1,borderWidth:2,pointRadius:0,tension:0},
+    {label:'엑셀 원모델',data:[],borderColor:ref,borderWidth:2,borderDash:[6,4],pointRadius:0,tension:0},
+    {label:'현재 위치',data:[],type:'scatter',backgroundColor:s1,borderColor:surf,borderWidth:2,pointRadius:6,pointHoverRadius:7},
+  ]},options:o});
+  o=lineOpts(null, v=>v+'개월', x=>x+'개월차', '백만원'); o.scales.x.min=0; o.scales.x.max=60; o.scales.x.ticks.stepSize=12;
+  mk('cCum',{type:'line',data:{datasets:[
+    {label:'현재 후보지',data:[],borderColor:s1,borderWidth:2,pointRadius:0,tension:0},
+    {label:'엑셀 원모델',data:[],borderColor:ref,borderWidth:2,borderDash:[6,4],pointRadius:0,tension:0},
+  ]},options:o});
+  o=baseOpts(); o.indexAxis='y'; o.scales.x.stacked=true; o.scales.y.stacked=true; zeroGridX(o);
+  o.scales.y.grid={display:false}; o.scales.x.ticks.callback=v=>sign(v.toLocaleString('ko-KR'));
+  o.plugins.tooltip.callbacks={label:c=>' '+c.dataset.label+': '+sign(Math.round(c.parsed.x).toLocaleString('ko-KR'))+'만원'};
+  mk('cTor',{type:'bar',data:{labels:[],datasets:[
+    {label:'가정 +10%',data:[],backgroundColor:s1,borderRadius:4,borderSkipped:false,barPercentage:.75},
+    {label:'가정 −10%',data:[],backgroundColor:s2,borderRadius:4,borderSkipped:false,barPercentage:.75},
+  ]},options:o});
+  legend('lgTor',[['가정 +10%',s1],['가정 −10%',s2]]);
+  o=baseOpts(); o.indexAxis='y'; o.scales.y.grid={display:false}; o.scales.x.ticks.callback=v=>v+'%';
+  o.plugins.tooltip.callbacks={label:c=>' '+c.dataset.label+': '+c.parsed.x.toFixed(1)+'%'};
+  mk('cBench',{type:'bar',data:{labels:[],datasets:[
+    {label:'현재 후보지',data:[],backgroundColor:s1,borderRadius:4,borderSkipped:false,categoryPercentage:.72,barPercentage:.9},
+    {label:'서초점 실적',data:[],backgroundColor:neu,borderRadius:4,borderSkipped:false,categoryPercentage:.72,barPercentage:.9},
+  ]},options:o});
+  o=baseOpts(); o.scales.y.ticks.callback=v=>v.toFixed(1); o.scales.x.grid={display:false}; o.scales.x.ticks.maxRotation=0;
+  o.plugins.tooltip.callbacks={label:c=>' '+c.parsed.y.toFixed(2)+'억원'};
+  mk('cBranch',{type:'bar',data:{labels:[],datasets:[{data:[],backgroundColor:[],borderRadius:4,borderSkipped:false,maxBarThickness:52}]},options:o, plugins:[valueLabels]});
+
+  o=baseOpts(); o.scales.x.grid={display:false}; o.scales.y.ticks.callback=yMan; o.scales.x.ticks.maxRotation=0;
+  o.plugins.tooltip.callbacks={label:c=>' '+c.dataset.label+': '+Math.round(c.parsed.y).toLocaleString('ko-KR')+'만원'};
+  mk('cCmpOp',{type:'bar',data:{labels:[],datasets:[
+    {label:'1년차 평균',data:[],backgroundColor:[],borderRadius:4,borderSkipped:false,categoryPercentage:.7,barPercentage:.92},
+    {label:'정상화',data:[],backgroundColor:[],borderRadius:4,borderSkipped:false,categoryPercentage:.7,barPercentage:.92},
+  ]},options:o});
+  o=lineOpts(null, v=>v+'개월', x=>x+'개월차', '백만원'); o.scales.x.min=0; o.scales.x.max=60; o.scales.x.ticks.stepSize=12;
+  mk('cCmpCum',{type:'line',data:{datasets:[]},options:o});
+  o=lineOpts('월매출 (억원)', v=>v.toFixed(1), x=>'월매출 '+x.toFixed(2)+'억', '만원');
+  mk('cCmpSens',{type:'line',data:{datasets:[]},options:o});
+  o=baseOpts(); o.indexAxis='y'; o.scales.y.grid={display:false}; o.scales.x.ticks.callback=yMan;
+  o.plugins.tooltip.callbacks={label:c=>' '+Math.round(c.parsed.x).toLocaleString('ko-KR')+'명'};
+  mk('cFlow',{type:'bar',data:{labels:[],datasets:[{data:[],backgroundColor:[],borderRadius:4,borderSkipped:false,barPercentage:.7}]},options:o, plugins:[valueLabelsH]});
+
+  o=baseOpts(); o.indexAxis='y'; o.scales.y.grid={display:false}; zeroGridX(o); o.scales.x.ticks.callback=yMan; o.scales.x.ticks.maxRotation=0;
+  o.plugins.tooltip.callbacks={label:c=>{ const d=c.raw; return c.dataset.label==='중앙값' ? ' 중앙값: '+Math.round((d[0]+d[1])/2).toLocaleString('ko-KR')+'만원' : ' '+c.dataset.label+': '+Math.round(d[0]).toLocaleString('ko-KR')+' ~ '+Math.round(d[1]).toLocaleString('ko-KR')+'만원'; }};
+  mk('cRisk',{type:'bar',data:{labels:[],datasets:[
+    {label:'P10~P90',data:[],backgroundColor:[],grouped:false,borderRadius:4,borderSkipped:false,barPercentage:.6},
+    {label:'P25~P75',data:[],backgroundColor:[],grouped:false,borderRadius:4,borderSkipped:false,barPercentage:.6},
+    {label:'중앙값',data:[],backgroundColor:cssv('--text'),grouped:false,barPercentage:.85},
+  ]},options:o});
+  o=baseOpts(); o.scales.x.grid={display:false}; o.scales.x.ticks.maxRotation=0; o.scales.x.ticks.maxTicksLimit=7;
+  o.scales.y.ticks.callback=v=>v+'%';
+  o.plugins.tooltip.callbacks={title:c=>c[0].label+'만원 부근', label:c=>' 비중 '+c.parsed.y.toFixed(1)+'%'};
+  mk('cHist',{type:'bar',data:{labels:[],datasets:[{data:[],backgroundColor:[],borderRadius:2,borderSkipped:false,barPercentage:1,categoryPercentage:.9}]},options:o});
+
+  o=lineOpts(null, v=>v+'개월', x=>x+'개월차', '백만원'); o.scales.x.min=0;
+  mk('cMyCum',{type:'line',data:{datasets:[]},options:o});
+  o=lineOpts('운영기간 (년)', v=>v+'년', x=>x+'년 운영 후 엑시트', '%');
+  o.scales.y.ticks.callback=v=>v+'%';
+  o.plugins.tooltip.callbacks.label=c=>' '+c.dataset.label+': '+c.parsed.y.toFixed(1)+'%';
+  mk('cIrr',{type:'line',data:{datasets:[]},options:o});
+  render();
+}
+
+/* ===================== 렌더 ===================== */
+let raf=null, mcTimer=null;
+function schedule(){ if(raf) cancelAnimationFrame(raf); raf=requestAnimationFrame(()=>{ raf=null; render(); }); }
+
+function render(){
+  segSync(); persist();
+  const st=site(), p=st.p, basis=ST.basis;
+  const r = calc(p,{basis}), x = calc(EXCEL,{basis});
+  const tl = timeline(p);
+  const b0 = bep(p,basis,false), b1 = bep(p,basis,true);
+
+  document.getElementById('revDerived').innerHTML =
+    `점심 <b>${Math.round(p.tables*p.lunchPpl*p.lunchTurn)}명/일</b> · 저녁 <b>${Math.round(p.tables*p.dinnerPpl*p.dinnerTurn)}명/일</b> · 배달 <b>${(r.delivOrders/Math.max(p.delivDays,1)).toFixed(0)}건/일</b><br>`+
+    `좌석 ${p.tables*4}석 · 월매출 <b>${eok(r.sales)}억</b>`;
+  document.getElementById('laborDerived').innerHTML =
+    `총 <b>${(p.kFte+p.hFte).toFixed(1)}명</b> · 월 인건비(보험·퇴직${p.opSalary?'·운영자':''} 포함) <b>${man(r.labor)}만원</b> · 매출 대비 <b>${pct(r.labor/r.sales)}</b><br>서초점 실적 21.7~26.7%`;
+
+  const dl = (a,b,fmt,unit)=>{ const d=a-b; if(Math.abs(d)<1e-6) return '엑셀 원모델과 동일'; return `<span class="${d>0?'pos':'neg'}">원모델 대비 ${d>0?'+':''}${fmt(d)}${unit}</span>`; };
+  const kp = [
+    [`<i class="sw" style="background:${colorOf(st)}"></i>${esc(st.name)} · 월 매출`, `${eok(r.sales)}<small>억</small>`, dl(r.sales,x.sales,v=>eok(v),'억')],
+    ['월 영업이익', `<span class="${r.op>=0?'':'neg'}">${man(r.op)}</span><small>만원</small>`, `이익률 ${pct(r.op/r.sales)} · `+dl(r.op,x.op,v=>man(v),'만')],
+    ['월 세후 현금흐름', `<span class="${r.cf>=0?'':'neg'}">${man(r.cf)}</span><small>만원</small>`, dl(r.cf,x.cf,v=>man(v),'만')],
+    ['투자 회수기간', tl.payback==null?'<span class="neg">60개월+</span>':`${tl.payback.toFixed(1)}<small>개월</small>`, `회수 대상 ${man(r.recover)}만원`],
+    ['손익분기 매출', b0==null?'—':`${eok(b0)}<small>억</small>`, b1?`감가상각 후 ${eok(b1)}억 · 현재 ${r.sales>=b1?'<span class="pos">상회</span>':'<span class="neg">미달</span>'}`:''],
+    ['연 ROI (세후)', `<span class="${r.roi>=0?'':'neg'}">${pct(r.roi,1)}</span>`, `총투자 ${eok(r.upfront)}억 (보증금 포함)`],
+  ];
+  document.getElementById('kpis').innerHTML = kp.map(([k,v,d])=>`<div class="kpi"><div class="k">${k}</div><div class="v num">${v}</div><div class="d">${d}</div></div>`).join('');
+
+  if(!charts.cWater) return;
+  if(ST.tab==='single') renderSingle(st,p,r,x,tl);
+  if(ST.tab==='compare') renderCompare();
+  if(ST.tab==='risk'){ clearTimeout(mcTimer); mcTimer=setTimeout(renderRisk, 120); }
+  if(ST.tab==='deal') renderDeal();
+}
+
+function renderSingle(st,p,r,x,tl){
+  const basis=ST.basis, s1=cssv('--s1'), neu=cssv('--neutral'), good=cssv('--good'), bad=cssv('--bad'), ref=cssv('--ref');
+  const nm = st.name, tlx = timeline(EXCEL);
+  legend('lgSens',[[nm,s1,'line'],['엑셀 원모델',ref,'dash'],['현재 가정 위치',s1]]);
+  legend('lgCum',[[nm,s1,'line'],['엑셀 원모델',ref,'dash']]);
+  const steps=[['부가세',r.vat],['원가',r.cogs],['인건비',r.labor],['점포비',r.store],['공과금',r.util],['수수료',r.fees],['기타',r.other]];
+  let run=r.sales/1e4; const wl=['매출'], wd=[[0,run]], wc=[s1];
+  for(const [n,v] of steps){ wl.push(n); wd.push([run-v/1e4, run]); wc.push(neu); run-=v/1e4; }
+  wl.push('영업이익'); wd.push(run>=0?[0,run]:[run,0]); wc.push(run>=0?good:bad);
+  const cw=charts.cWater; cw.data.labels=wl; cw.data.datasets[0].data=wd; cw.data.datasets[0].backgroundColor=wc; cw.update('none');
+
+  const sx0=calc(EXCEL,{basis,mult:.6}).sales/1e8, sx1=calc(EXCEL,{basis,mult:1.4}).sales/1e8;
+  const lo=Math.min(.6*r.sales/1e8, sx0), hi=Math.max(1.4*r.sales/1e8, sx1);
+  const xs=[]; for(let i=0;i<=40;i++) xs.push(lo+(hi-lo)*i/40);
+  const cs=charts.cSens; cs.data.datasets[0].label=nm;
+  cs.data.datasets[0].data = xs.map(sv=>({x:sv,y:calc(p,{basis,mult:sv*1e8/r.sales}).op/1e4}));
+  cs.data.datasets[1].data = xs.map(sv=>({x:sv,y:calc(EXCEL,{basis,mult:sv*1e8/x.sales}).op/1e4}));
+  cs.data.datasets[2].data = [{x:r.sales/1e8,y:r.op/1e4}];
+  cs.options.scales.x.min=lo; cs.options.scales.x.max=hi; cs.update('none');
+
+  const cc=charts.cCum; cc.data.datasets[0].label=nm;
+  cc.data.datasets[0].data = tl.pts.map(q=>({x:q.m,y:q.v/1e6}));
+  cc.data.datasets[1].data = tlx.pts.map(q=>({x:q.m,y:q.v/1e6})); cc.update('none');
+
+  const drivers=[['저녁 객단가',['dinnerPrice']],['저녁 회전수',['dinnerTurn']],['점심 회전수',['lunchTurn']],['점심 객단가',['lunchPrice']],
+    ['본사 CK 원가율',['ck']],['급여 수준',['kWage','hWage']],['월세',['rent']],['배달 점유율',['msA','msB']],['테이블 수',['tables']]];
+  const tor = drivers.map(([n,keys])=>{ const up={...p}, dn={...p}; keys.forEach(k=>{up[k]=p[k]*1.1; dn[k]=p[k]*0.9;});
+    return [n,(calc(up,{basis}).op-r.op)/1e4,(calc(dn,{basis}).op-r.op)/1e4]; })
+    .sort((a,b)=>Math.max(Math.abs(b[1]),Math.abs(b[2]))-Math.max(Math.abs(a[1]),Math.abs(a[2])));
+  const ct=charts.cTor; ct.data.labels=tor.map(t=>t[0]); ct.data.datasets[0].data=tor.map(t=>t[1]); ct.data.datasets[1].data=tor.map(t=>t[2]); ct.update('none');
+
+  const sRev=avg(SEOCHO.rev), cb=charts.cBench; cb.data.datasets[0].label=nm;
+  cb.data.labels=['식자재·주류','인건비','부가세','임대료·관리비','공과금','카드·가맹·배달 수수료','영업이익률'];
+  cb.data.datasets[0].data=[(r.cogs-r.sup)/r.sales, r.labor/r.sales, r.vat/r.sales, r.store/r.sales, r.util/r.sales, (r.card+r.royalty+r.delivFee)/r.sales, r.op/r.sales].map(v=>v*100);
+  cb.data.datasets[1].data=[avg(SEOCHO.food), avg(SEOCHO.labor), SEOCHO.vat, SEOCHO.rent/sRev*100, avg(SEOCHO.util)/sRev*100, SEOCHO.card, avg(SEOCHO.profit.map((v,i)=>v/SEOCHO.rev[i]))*100];
+  legend('lgBench',[[nm,s1],['서초점 1~3월 실적',neu]]); cb.update('none');
+
+  const br = BRANCH.map(([n,a])=>[n,avg(a)/1e8,neu]);
+  ST.sites.forEach(sx=>br.push([sx.name, calc(sx.p,{basis}).sales/1e8, colorOf(sx)]));
+  const cbr=charts.cBranch; cbr.data.labels=br.map(b=>b[0]); cbr.data.datasets[0].data=br.map(b=>b[1]); cbr.data.datasets[0].backgroundColor=br.map(b=>b[2]); cbr.update('none');
+
+  const gIn=document.getElementById('goalOp'); if(document.activeElement!==gIn) gIn.value=ST.goal;
+  const target=ST.goal*1e4;
+  const mNeed = solve(m=>calc(p,{basis,mult:m}).op-target, 0, 6);
+  const dNeed = solve(t=>calc({...p,dinnerTurn:t},{basis}).op-target, 0, 12);
+  const lNeed = solve(t=>calc({...p,lunchTurn:t},{basis}).op-target, 0, 12);
+  const g = mNeed==null ? null : calc(p,{basis,mult:mNeed});
+  const curDaily = p.tables*(p.lunchPpl*p.lunchTurn+p.dinnerPpl*p.dinnerTurn);
+  const daily = mNeed==null ? null : Math.round(curDaily*mNeed);
+  document.getElementById('goalOut').innerHTML = [
+    ['필요 월매출', g?`${eok(g.sales)}억`:'달성 불가', g?`현재 대비 ${sign(((g.sales/r.sales-1)*100).toFixed(0))}%`:''],
+    ['필요 홀 고객 (평일 하루)', daily!=null?`${daily.toLocaleString('ko-KR')}명`:'—', `현재 ${Math.round(curDaily)}명`],
+    ['저녁 회전수만 올린다면', dNeed!=null?`${dNeed.toFixed(2)}회`:'달성 불가', `현재 ${p.dinnerTurn}회`],
+    ['점심 회전수만 올린다면', lNeed!=null?`${lNeed.toFixed(2)}회`:'달성 불가', `현재 ${p.lunchTurn}회`],
+  ].map(([k,v,d])=>`<div><div class="k">${k}</div><div class="v">${v}</div><div class="k">${d}</div></div>`).join('');
+  renderTable(st,r,x);
+}
+document.getElementById('goalOp').addEventListener('input',e=>{ const v=parseFloat(e.target.value); if(!isNaN(v)){ ST.goal=v; schedule(); } });
+
+function renderTable(st,r,x){
+  const rows=[
+    ['월매출액',r.sales,x.sales,'sum'],
+    ['점심',r.lunch,x.lunch,'sub'],['저녁',r.dinner,x.dinner,'sub'],['주말',r.weekend,x.weekend,'sub'],['배달',r.deliv,x.deliv,'sub'],
+    ['부가세',r.vat,x.vat],
+    ['매출원가',r.cogs,x.cogs],
+    ['본사 CK',r.ck,x.ck,'sub'],['야채 등',r.veg,x.veg,'sub'],['주류·음료',r.liq,x.liq,'sub'],['소모품',r.sup,x.sup,'sub'],['로스',r.loss,x.loss,'sub'],
+    ['매출총이익',r.sales-r.vat-r.cogs,x.sales-x.vat-x.cogs,'sum'],
+    ['인건비',r.labor,x.labor],
+    ['급여',r.wages,x.wages,'sub'],['4대보험·퇴직',r.ins+r.sev,x.ins+x.sev,'sub'],['운영 파트너 급여',r.owner,x.owner,'sub'],
+    ['점포비 (월세·관리비)',r.store,x.store],
+    ['공과금',r.util,x.util],
+    ['수수료',r.fees,x.fees],
+    ['가맹',r.royalty,x.royalty,'sub'],['카드',r.card,x.card,'sub'],['배달',r.delivFee,x.delivFee,'sub'],['렌탈·세무노무',r.fees-r.royalty-r.card-r.delivFee,x.fees-x.royalty-x.card-x.delivFee,'sub'],
+    ['기타 (마케팅·보험·소모품)',r.other,x.other],
+    ['영업이익',r.op,x.op,'sum'],
+    ['감가상각',r.dep,x.dep],
+    ['세전이익',r.pretax,x.pretax],
+    ['법인세',r.tax,x.tax],
+    ['세후이익',r.net,x.net,'sum'],
+    ['세후 현금흐름 (세후이익+상각)',r.cf,x.cf,'sum'],
+  ];
+  document.getElementById('plDesc').textContent = `${st.name} 와 엑셀 원모델 비교 (단위: 만원)`;
+  document.getElementById('plTable').innerHTML = `<thead><tr><th>항목</th><th>${esc(st.name)}</th><th>매출 대비</th><th>엑셀 원모델</th><th>차이</th></tr></thead><tbody>`+
+    rows.map(([n,a,b,cls])=>{ const d=a-b; return `<tr class="${cls||''}"><td>${n}</td><td>${man(a)}</td><td>${r.sales?pct(a/r.sales):''}</td><td>${man(b)}</td><td>${Math.abs(d)<5e3?'–':(d>0?'+':'')+man(d)}</td></tr>`; }).join('')+'</tbody>';
+  const p=st.p;
+  const yr = ST.basis==='y1' ? `월세는 렌트프리 ${p.rentFree}개월을 12개월로 나눈 1년차 평균(${man(r.rent)}만원)` : `월세는 렌트프리 종료 후 정상 금액(${man(r.rent)}만원)`;
+  document.getElementById('plNote').innerHTML = `<b>읽는 법</b> · ${yr}입니다. 회수기간은 월별 누적 현금흐름(렌트프리 기간 월세 0, 램프업·계절성 반영)이 회수 대상 투자금(인테리어+가맹비+운전자금${p.premium?'+권리금':''}${p.inclRestore?'+원상복구비':''})을 넘는 시점입니다. 엑셀의 단순 계산식(투자금 ÷ 월 현금흐름)으로는 <b>${isFinite(r.paybackSimple)?r.paybackSimple.toFixed(1)+'개월':'회수 불가'}</b>입니다.`;
+}
+
+/* ---------- 비교 ---------- */
+const mcCache = new Map();
+function mcFor(sx){
+  const key = JSON.stringify([sx.p, ST.mc, ST.basis, sx.slot]);
+  if(!mcCache.has(key)){ if(mcCache.size>48) mcCache.clear(); mcCache.set(key, monteCarlo(sx.p, ST.mc, ST.basis, 1234+sx.slot)); }
+  return mcCache.get(key);
+}
+function qualScore(sx){ let ws=0, t=0; CRITERIA.forEach(([k])=>{ const w=+ST.w[k]||0; ws+=w; t+=w*(+sx.q[k]||0); }); return ws ? t/ws : 0; }
+function compareRows(){
+  const B=ST.basis;
+  const data = ST.sites.map(sx=>{
+    const p=sx.p, y2=calc(p,{basis:'y2'}), y1=calc(p,{basis:'y1'}), r=calc(p,{basis:B});
+    return {sx,p,r,y1,y2,tl:timeline(p),b1:bep(p,B,true),irr:annual(irrMonthly(exitFlows(p))),mc:mcFor(sx)};
+  });
+  const n=(v,d=0)=>v==null||!isFinite(v)?'—':Number(v).toLocaleString('ko-KR',{maximumFractionDigits:d,minimumFractionDigits:d});
+  const num = v => v===''||v==null ? null : +v;
+  const R=(l,vals,fmt,better,nullWorst)=>({l,vals,fmt,better,nullWorst});
+  const rows=[
+    {grp:'수익성'},
+    R('월 매출 (억)', data.map(d=>d.r.sales/1e8), v=>n(v,2), 'up'),
+    R('월 영업이익 (만원)', data.map(d=>d.r.op/1e4), v=>n(v), 'up'),
+    R('영업이익률', data.map(d=>d.r.op/d.r.sales), v=>pct(v), 'up'),
+    R('월 세후 현금흐름 (만원)', data.map(d=>d.r.cf/1e4), v=>n(v), 'up'),
+    R('정상화 월 영업이익 (만원)', data.map(d=>d.y2.op/1e4), v=>n(v), 'up'),
+    R('손익분기 매출 (억, 상각 후)', data.map(d=>d.b1==null?null:d.b1/1e8), v=>n(v,2), 'down', true),
+    R('손익분기 대비 안전마진', data.map(d=>d.b1==null?null:(d.r.sales-d.b1)/d.r.sales), v=>v==null?'—':pct(v), 'up', true),
+    {grp:'투자·회수'},
+    R('총 투자 (억, 보증금 포함)', data.map(d=>d.r.upfront/1e8), v=>n(v,2), 'down'),
+    R('회수 대상 투자 (억)', data.map(d=>d.r.recover/1e8), v=>n(v,2), 'down'),
+    R('투자 회수기간 (개월)', data.map(d=>d.tl.payback), v=>v==null?'60+':n(v,1), 'down', true),
+    R('연 ROI (세후)', data.map(d=>d.r.roi), v=>pct(v), 'up'),
+    R('프로젝트 IRR (운영기간 기준)', data.map(d=>d.irr), v=>v==null?'—':pct(v), 'up', true),
+    {grp:'임대 조건'},
+    R('월세+관리비 (만원, 정상화)', data.map(d=>d.y2.store/1e4), v=>n(v), 'down'),
+    R('임대료 비율 (정상화)', data.map(d=>d.y2.store/d.y2.sales), v=>pct(v), 'down'),
+    R('렌트프리 (개월)', data.map(d=>d.p.rentFree), v=>n(v), 'up'),
+    R('보증금 (억)', data.map(d=>d.p.deposit/1e4), v=>n(v,2), 'down'),
+    {grp:'상권·정성'},
+    R('반경 50m 유동인구', data.map(d=>num(d.sx.m.flow)), v=>n(v), 'up'),
+    R('반경 300m 직장인구', data.map(d=>num(d.sx.m.work)), v=>n(v), 'up'),
+    R('업종 평균매출 (억)', data.map(d=>num(d.sx.m.avg)), v=>n(v,2), 'up'),
+    R('정성 평가 (5점 만점)', data.map(d=>qualScore(d.sx)), v=>n(v,2), 'up'),
+    {grp:'리스크 (리스크 탭 설정 기준)'},
+    R('영업적자 확률', data.map(d=>d.mc.pLoss), v=>pct(v,0), 'down'),
+    R('영업이익 P10 (만원, 나쁜 경우)', data.map(d=>d.mc.p10/1e4), v=>n(v), 'up'),
+    R('36개월 내 회수 확률', data.map(d=>d.mc.p36), v=>pct(v,0), 'up'),
+  ];
+  return {rows, data};
+}
+function bestIndex(r){
+  if(ST.sites.length<2) return -1;
+  const vals=r.vals.map((v,i)=>[v==null||!isFinite(v) ? (r.nullWorst ? (r.better==='up'?-Infinity:Infinity) : null) : v, i]).filter(([v])=>v!=null);
+  if(vals.length<2) return -1;
+  vals.sort((a,b)=>r.better==='up'?b[0]-a[0]:a[0]-b[0]);
+  if(!isFinite(vals[0][0]) || vals[0][0]===vals[1][0]) return -1;
+  return vals[0][1];
+}
+function renderCompare(){
+  const {rows, data}=compareRows();
+  const head = `<thead><tr><th>항목</th>${ST.sites.map(sx=>`<th>${swatch(sx)}${esc(sx.name)}</th>`).join('')}</tr></thead>`;
+  const body = rows.map(r=>{
+    if(r.grp) return `<tr class="grp"><td colspan="${ST.sites.length+1}">${r.grp}</td></tr>`;
+    const best=bestIndex(r);
+    return `<tr><td>${r.l}</td>${r.vals.map((v,i)=>`<td class="${i===best?'best':''}">${r.fmt(v)}${i===best?'<span class="tag">최고</span>':''}</td>`).join('')}</tr>`;
+  }).join('');
+  document.getElementById('cmpTable').innerHTML = head+'<tbody>'+body+'</tbody>';
+
+  const B=ST.basis;
+  const co=charts.cCmpOp;
+  co.data.labels=data.map(d=>d.sx.name);
+  co.data.datasets[0].data=data.map(d=>d.y1.op/1e4); co.data.datasets[0].backgroundColor=data.map(d=>rgba(colorOf(d.sx),.4));
+  co.data.datasets[1].data=data.map(d=>d.y2.op/1e4); co.data.datasets[1].backgroundColor=data.map(d=>colorOf(d.sx));
+  legend('lgCmpOp',[['왼쪽 옅은 막대: 1년차 평균 (렌트프리 반영)',rgba(cssv('--text-3'),.4)],['오른쪽 진한 막대: 정상화 월',cssv('--text-3')]]);
+  co.update('none');
+  const cc=charts.cCmpCum;
+  cc.data.datasets=data.map(d=>({label:d.sx.name,data:d.tl.pts.map(q=>({x:q.m,y:q.v/1e6})),borderColor:colorOf(d.sx),borderWidth:2,pointRadius:0,tension:0}));
+  legend('lgCmpCum',data.map(d=>[d.sx.name+(d.tl.payback!=null?` · ${d.tl.payback.toFixed(0)}개월 회수`:' · 60개월 내 미회수'),colorOf(d.sx),'line']));
+  cc.update('none');
+  const lo=Math.min(...data.map(d=>d.r.sales*.6))/1e8, hi=Math.max(...data.map(d=>d.r.sales*1.4))/1e8;
+  const xs=[]; for(let i=0;i<=40;i++) xs.push(lo+(hi-lo)*i/40);
+  const cs=charts.cCmpSens, surf=cssv('--surface');
+  cs.data.datasets=[
+    ...data.map(d=>({label:d.sx.name,data:xs.map(sv=>({x:sv,y:calc(d.p,{basis:B,mult:sv*1e8/d.r.sales}).op/1e4})),borderColor:colorOf(d.sx),borderWidth:2,pointRadius:0,tension:0})),
+    ...data.map(d=>({label:d.sx.name+' 현재',type:'scatter',data:[{x:d.r.sales/1e8,y:d.r.op/1e4}],backgroundColor:colorOf(d.sx),borderColor:surf,borderWidth:2,pointRadius:6})),
+  ];
+  cs.options.scales.x.min=lo; cs.options.scales.x.max=hi;
+  legend('lgCmpSens',data.map(d=>[d.sx.name+(d.b1?` · 손익분기 ${eok(d.b1)}억`:''),colorOf(d.sx),'line']));
+  cs.update('none');
+  const fl=[...ST.sites.filter(sx=>sx.m.flow!=='' && sx.m.flow!=null).map(sx=>[sx.name,+sx.m.flow,colorOf(sx)]), ...FLOW_BRANCH.map(([n,v])=>[n+' (기존)',v,cssv('--neutral')])].sort((a,b)=>b[1]-a[1]);
+  const cf=charts.cFlow; cf.data.labels=fl.map(f=>f[0]); cf.data.datasets[0].data=fl.map(f=>f[1]); cf.data.datasets[0].backgroundColor=fl.map(f=>f[2]); cf.update('none');
+  renderScore(); renderInfo();
+}
+function renderScore(){
+  const t=document.getElementById('scoreTable');
+  if(t.contains(document.activeElement) && t.dataset.n==String(ST.sites.length)) { updateScoreTotals(); return; }
+  t.dataset.n=ST.sites.length;
+  t.innerHTML = `<thead><tr><th>항목</th><th>가중치</th>${ST.sites.map(sx=>`<th>${swatch(sx)}${esc(sx.name)}</th>`).join('')}</tr></thead><tbody>`+
+    CRITERIA.map(([k,l])=>`<tr><td>${l}</td><td><input type="number" min="0" max="5" step="1" data-w="${k}" value="${ST.w[k]}" aria-label="${l} 가중치"></td>${ST.sites.map(sx=>`<td><input type="number" min="1" max="5" step="1" data-s="${sx.id}" data-q="${k}" value="${sx.q[k]}" aria-label="${esc(sx.name)} ${l}"></td>`).join('')}</tr>`).join('')+
+    `<tr class="total"><td>가중 평균 (5점 만점)</td><td></td>${ST.sites.map(sx=>`<td data-total="${sx.id}"></td>`).join('')}</tr></tbody>`;
+  updateScoreTotals();
+}
+function updateScoreTotals(){
+  const sc=ST.sites.map(sx=>qualScore(sx)), mx=Math.max(...sc), uniq=sc.filter(v=>v===mx).length===1;
+  ST.sites.forEach((sx,i)=>{ const el=document.querySelector(`[data-total="${sx.id}"]`); if(el) el.innerHTML = sc[i].toFixed(2)+(ST.sites.length>1 && sc[i]===mx && uniq?'<span class="tag">최고</span>':''); });
+}
+document.getElementById('scoreTable').addEventListener('input',e=>{
+  const t=e.target, v=Math.max(0,Math.min(5,parseFloat(t.value)||0));
+  if(t.dataset.w) ST.w[t.dataset.w]=v;
+  if(t.dataset.q){ const sx=ST.sites.find(x=>x.id===t.dataset.s); if(sx) sx.q[t.dataset.q]=Math.max(1,v); }
+  schedule();
+});
+function renderInfo(){
+  const rows=[['주소','addr'],['층·노출','floor'],['면적 (평)','area'],['오픈업 추정','openup'],['장점','pros'],['단점','cons'],['메모','memo']];
+  document.getElementById('infoTable').innerHTML = `<thead><tr><th></th>${ST.sites.map(sx=>`<th style="text-align:left">${swatch(sx)}${esc(sx.name)}</th>`).join('')}</tr></thead><tbody>`+
+    rows.map(([l,k])=>`<tr><td>${l}</td>${ST.sites.map(sx=>`<td style="text-align:left;white-space:normal;min-width:170px;vertical-align:top">${esc(sx.m[k])||'<span style="color:var(--text-3)">—</span>'}</td>`).join('')}</tr>`).join('')+'</tbody>';
+}
+
+/* ---------- 리스크 ---------- */
+const MC_FIELDS=[['n','시뮬레이션 횟수','회',200,10000,100],['turn','회전수 변동','±%',0,60,1],['price','객단가 변동','±%',0,40,1],['deliv','배달 점유율 변동','±%',0,100,5],['cogs','CK 원가율 변동','±%p',0,10,0.5],['labor','급여 변동','±%',0,40,1]];
+document.getElementById('mcInputs').innerHTML = MC_FIELDS.map(([k,l,u,mn,mx,st])=>`<label>${l} <input type="number" data-mc="${k}" min="${mn}" max="${mx}" step="${st}"> ${u}</label>`).join('');
+document.getElementById('mcInputs').addEventListener('input',e=>{ const k=e.target.dataset.mc, v=parseFloat(e.target.value); if(!k||isNaN(v)) return;
+  const f=MC_FIELDS.find(x=>x[0]===k); ST.mc[k]=Math.max(f[3],Math.min(f[4],v)); schedule(); });
+function renderRisk(){
+  document.querySelectorAll('[data-mc]').forEach(el=>{ if(document.activeElement!==el) el.value=ST.mc[el.dataset.mc]; });
+  const res=ST.sites.map(sx=>({sx, mc:mcFor(sx), r:calc(sx.p,{basis:ST.basis})}));
+  const cr=charts.cRisk;
+  cr.data.labels=res.map(d=>d.sx.name);
+  cr.data.datasets[0].data=res.map(d=>[d.mc.p10/1e4,d.mc.p90/1e4]); cr.data.datasets[0].backgroundColor=res.map(d=>rgba(colorOf(d.sx),.3));
+  cr.data.datasets[1].data=res.map(d=>[d.mc.p25/1e4,d.mc.p75/1e4]); cr.data.datasets[1].backgroundColor=res.map(d=>colorOf(d.sx));
+  const span=(Math.max(...res.map(d=>d.mc.p90))-Math.min(...res.map(d=>d.mc.p10)))/1e4*0.004+1;
+  cr.data.datasets[2].data=res.map(d=>[d.mc.p50/1e4-span,d.mc.p50/1e4+span]);
+  cr.update('none');
+  const a=res.find(d=>d.sx.id===ST.active)||res[0];
+  const ops=a.mc.ops.map(v=>v/1e4); let mn=Infinity, mx=-Infinity; ops.forEach(v=>{ if(v<mn) mn=v; if(v>mx) mx=v; });
+  const bins=28, w=(mx-mn)/bins||1, cnt=new Array(bins).fill(0);
+  ops.forEach(v=>cnt[Math.min(bins-1,Math.floor((v-mn)/w))]++);
+  const ch=charts.cHist, col=colorOf(a.sx), bad=cssv('--bad');
+  ch.data.labels=cnt.map((_,i)=>Math.round(mn+w*(i+.5)).toLocaleString('ko-KR'));
+  ch.data.datasets[0].data=cnt.map(c=>c/ops.length*100);
+  ch.data.datasets[0].backgroundColor=cnt.map((_,i)=>mn+w*(i+.5)<0?bad:col);
+  ch.update('none');
+  document.getElementById('histTitle').textContent = `${a.sx.name} · 영업이익 분포`;
+  legend('lgHist',[['흑자 구간',col],['적자 구간',bad]]);
+  document.getElementById('riskDesc').textContent = `${ST.mc.n.toLocaleString('ko-KR')}회 시뮬레이션 · ${ST.basis==='y1'?'1년차 평균':'정상화'} 기준 · 기준값은 각 후보지의 현재 입력`;
+  document.getElementById('riskTable').innerHTML = `<thead><tr><th>후보지</th><th>기준 영업이익</th><th>P10 (나쁜 경우)</th><th>중앙값</th><th>P90 (좋은 경우)</th><th>영업적자 확률</th><th>36개월 내 회수 확률</th></tr></thead><tbody>`+
+    res.map(d=>`<tr><td>${swatch(d.sx)}${esc(d.sx.name)}</td><td>${man(d.r.op)}</td><td>${man(d.mc.p10)}</td><td>${man(d.mc.p50)}</td><td>${man(d.mc.p90)}</td><td class="${d.mc.pLoss>.2?'neg':''}">${pct(d.mc.pLoss,0)}</td><td>${pct(d.mc.p36,0)}</td></tr>`).join('')+'</tbody>';
+}
+
+/* ---------- 동업·엑시트 ---------- */
+function renderDeal(){
+  const res=ST.sites.map(sx=>{
+    const p=sx.p, r=calc(p,{basis:'y2'}), f=exitFlows(p), mf=myFlows(p);
+    let cum=0; const myPts=[];
+    mf.forEach((v,t)=>{ cum+=v; myPts.push({x:t,y:cum/1e6}); });
+    // 내 회수: 엑시트 정산을 빼고, 월 배분만으로 내 몫의 회수 대상 투자금을 넘는 시점
+    const exitPart=(p.deposit+p.wc-p.restore+p.exitPremium)*1e4*p.myInvest/100, need=r.recover*p.myInvest/100;
+    let acc=0, myPay=null;
+    for(let t=1;t<mf.length;t++){ const v = t===mf.length-1 ? mf[t]-exitPart : mf[t]; const prev=acc; acc+=v; if(acc>=need){ myPay=t-1+(need-prev)/(v||1); break; } }
+    return {sx,p,r,irr:annual(irrMonthly(f)), myIrr:annual(irrMonthly(mf)), npv:npvAt(f,p.disc/100), myInv:-mf[0],
+      myMonthly:(r.cf>0?r.cf*p.myProfit/100:r.cf*p.myInvest/100), myPay, myPts, myTotal:cum};
+  });
+  const n=v=>Math.round(v/1e4).toLocaleString('ko-KR');
+  document.getElementById('dealTable').innerHTML = `<thead><tr><th>항목</th>${res.map(d=>`<th>${swatch(d.sx)}${esc(d.sx.name)}</th>`).join('')}</tr></thead><tbody>`+
+    [
+      ['내 투자 / 이익 배분 비율', d=>`${d.p.myInvest}% / ${d.p.myProfit}%`],
+      ['총 투자 (만원, 보증금 포함)', d=>n(d.r.upfront)],
+      ['내 투자금 (만원)', d=>n(d.myInv)],
+      ['내 월 배분 (만원, 정상화)', d=>`<span class="${d.myMonthly<0?'neg':''}">${n(d.myMonthly)}</span>`],
+      ['내 연 수익률 (배분 ÷ 투자)', d=>d.myInv>0?pct(d.myMonthly*12/d.myInv):'—'],
+      ['내 투자 회수 (개월, 보증금 제외)', d=>d.myPay==null?'<span class="neg">운영기간 내 미회수</span>':d.myPay.toFixed(1)],
+      ['운영기간', d=>`${d.p.hold}개월`],
+      ['엑시트 정산 (만원)', d=>n((d.p.deposit+d.p.wc-d.p.restore+d.p.exitPremium)*1e4)+`<br><small style="color:var(--text-3)">보증금+운전자금−원상복구+권리금</small>`],
+      ['내 순수익 합계 (만원)', d=>`<span class="${d.myTotal<0?'neg':'pos'}">${n(d.myTotal)}</span>`],
+      ['프로젝트 IRR (연)', d=>d.irr==null?'—':`<span class="${d.irr<0?'neg':''}">${pct(d.irr)}</span>`],
+      ['내 IRR (연)', d=>d.myIrr==null?'—':`<span class="${d.myIrr<0?'neg':''}">${pct(d.myIrr)}</span>`],
+      ['프로젝트 NPV (만원)', d=>`<span class="${d.npv<0?'neg':''}">${n(d.npv)}</span> <small style="color:var(--text-3)">@${d.p.disc}%</small>`],
+    ].map(([l,f])=>`<tr><td>${l}</td>${res.map(d=>`<td>${f(d)}</td>`).join('')}</tr>`).join('')+'</tbody>';
+  const cm=charts.cMyCum;
+  cm.data.datasets=res.map(d=>({label:d.sx.name,data:d.myPts,borderColor:colorOf(d.sx),borderWidth:2,pointRadius:0,tension:0}));
+  cm.options.scales.x.max=Math.max(...res.map(d=>d.p.hold)); cm.options.scales.x.ticks.stepSize=12;
+  legend('lgMyCum',res.map(d=>[d.sx.name,colorOf(d.sx),'line'])); cm.update('none');
+  const ci=charts.cIrr, yrs=[1,2,3,4,5,6,7,8,9,10];
+  ci.data.datasets=res.map(d=>({label:d.sx.name,data:yrs.map(y=>{ const v=annual(irrMonthly(exitFlows(d.p,y*12))); return {x:y,y:v==null?null:Math.max(-100,v*100)}; }),borderColor:colorOf(d.sx),backgroundColor:colorOf(d.sx),borderWidth:2,pointRadius:3,tension:0}));
+  ci.options.scales.x.min=1; ci.options.scales.x.max=10; ci.options.scales.x.ticks.stepSize=1;
+  legend('lgIrr',res.map(d=>[d.sx.name,colorOf(d.sx),'line'])); ci.update('none');
+}
+
+/* ===================== 체크리스트 ===================== */
+const CHECKS=[
+  ['로열티 구조','서초점 결산엔 가맹수수료 0원, 본사 납품 39%. 모델은 CK 35% + 가맹 3%. 정보공개서로 확인'],
+  ['서초점이 가맹점인지 직영인지','직영이면 벤치마크로서 의미가 달라짐'],
+  ['영업지역 보호 범위','삼성 본점·서초점과 상권 중복 여부, 계약서상 영업지역'],
+  ['기존 지점 12개월 매출','1~3월은 해장국 성수기. 여름 비수기 매출 확인'],
+  ['기존 지점 실제 배달매출','세대수×점유율 추정 대신 실적으로 대체'],
+  ['인테리어 견적 (현재 TBD 1.5억)','지하층 공사·환기·가스 증설 포함 여부'],
+  ['주말 영업 여부와 인력 계획','주말 매출·인건비 함께 반영'],
+  ['동업 계약서','지분, 운영자 급여, 추가 출자 의무, 엑시트·원상복구비 부담'],
+  ['사업자 형태와 세금','법인 vs 개인 공동사업 (법인세 vs 종합소득세), 세무사 검토'],
+  ['후보지별 렌트프리·임대 조건','모든 후보지를 같은 기준으로 재비교'],
+];
+(function(){
+  let st={}; try{ st=JSON.parse(localStorage.getItem('jh-checks')||'{}'); }catch(e){}
+  const ul=document.getElementById('checklist');
+  ul.innerHTML = CHECKS.map((c,i)=>`<li class="${st[i]?'done':''}"><input type="checkbox" id="ck${i}" ${st[i]?'checked':''}><label for="ck${i}"><span><b>${c[0]}</b><small>${c[1]}</small></span></label></li>`).join('');
+  ul.addEventListener('change',e=>{ const i=e.target.id.slice(2); st[i]=e.target.checked; e.target.closest('li').classList.toggle('done',e.target.checked); try{ localStorage.setItem('jh-checks',JSON.stringify(st)); }catch(err){} });
+})();
+
+/* ===================== 시작 ===================== */
+buildPanel(); renderSiteTabs(); syncInputs();
+if (window.Chart) rebuildCharts();
+else { render(); document.querySelector('main').insertAdjacentHTML('afterbegin','<div class="note">차트 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인하세요.</div>'); }
+</script>
+</body>
+</html>
