@@ -143,6 +143,20 @@ table.pl td.best{font-weight:700}
 .inline-inputs{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-bottom:12px}
 .inline-inputs label{font-size:12.5px;color:var(--text-2);display:flex;align-items:center;gap:6px}
 .inline-inputs input[type=number]{width:72px;text-align:right;font:inherit;font-size:13px;background:var(--surface-2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:3px 6px}
+.ou-ins{margin:0;padding:0;list-style:none;display:grid;gap:8px}
+.ou-ins li{font-size:13.5px;line-height:1.55;padding:9px 12px;background:var(--surface-2);border-radius:10px}
+.ou-ins li b{font-weight:700}
+.ou-ins li .lab{display:inline-block;font-size:11px;font-weight:700;color:var(--text-3);margin-right:6px;letter-spacing:.02em}
+.rec{margin:0;padding:0;list-style:none;counter-reset:rec;display:grid;gap:10px}
+.rec li{counter-increment:rec;position:relative;padding:12px 14px 12px 46px;background:var(--surface-2);border-radius:10px;font-size:13.5px;line-height:1.55}
+.rec li::before{content:counter(rec);position:absolute;left:14px;top:12px;width:22px;height:22px;border-radius:50%;background:var(--text);color:var(--bg);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.rec li b.t{display:block;font-size:14px;margin-bottom:2px}
+.rec li .btn{margin-top:8px}
+.src{font-size:12.5px;color:var(--text-2);margin:0;padding-left:18px;columns:2;column-gap:28px}
+.src li{margin-bottom:4px;break-inside:avoid}
+.src a{color:var(--s1);text-decoration:none}
+.src a:hover{text-decoration:underline}
+@media (max-width:640px){ .src{columns:1} }
 .goal-out{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
 .goal-out div{background:var(--surface-2);border-radius:10px;padding:10px 12px}
 .goal-out .k{font-size:12px;color:var(--text-3)}
@@ -243,6 +257,8 @@ footer{font-size:12px;color:var(--text-3);text-align:center;padding:10px 20px 30
       <button data-t="compare">후보지 비교</button>
       <button data-t="risk">리스크</button>
       <button data-t="deal">동업·엑시트</button>
+      <button data-t="ou">오픈업 데이터</button>
+      <button data-t="brand">지점·창업 인사이트</button>
     </nav>
 
     <div class="tabpane" id="tab-single">
@@ -394,6 +410,112 @@ footer{font-size:12px;color:var(--text-3);text-align:center;padding:10px 20px 30
       </div>
     </div>
 
+    <div class="tabpane" id="tab-ou">
+      <section class="card">
+        <h2>오픈업 데이터로 본 핵심</h2>
+        <p class="desc">엑셀 'peer'·'지점비교'·'타지점' 시트의 오픈업·소상공인365 캡처를 수치화한 결과. 막대 그래프는 높이를 픽셀로 읽어 화면에 표기된 비중(예: 점심 49%)과 대조해 확인했습니다</p>
+        <ul class="ou-ins" id="ouInsights"></ul>
+      </section>
+      <div class="grid2">
+        <section class="card">
+          <h2>오픈업 추정은 얼마나 맞나</h2>
+          <p class="desc">기존 지점은 같은 달(26년 1~3월) 오픈업 추정(빈 점)과 실제 결산(검은 점). 후보지는 오픈업 예상(옅은 막대)과 보정 범위(진한 막대), 단위: 억원</p>
+          <div class="legend" id="lgCal"></div>
+          <div class="chart tall"><canvas id="cCal"></canvas></div>
+        </section>
+        <section class="card">
+          <h2>중앙해장 월별 추정 매출 (최근 1년)</h2>
+          <p class="desc">오픈업 매장 카드의 1년 추이 막대를 5월 추정치 기준으로 환산한 값(선)과 실제 결산(점), 단위: 억원</p>
+          <div class="legend" id="lgTrend"></div>
+          <div class="chart tall"><canvas id="cTrend"></canvas></div>
+        </section>
+      </div>
+      <div class="grid2">
+        <section class="card">
+          <h2>시간대별 결제 비중</h2>
+          <p class="desc">2026년 5월 결제 건수 기준 (%). 금액 비중이 아니라 저녁은 건당 금액이 커서 매출 비중은 더 높음</p>
+          <div class="legend" id="lgTod"></div>
+          <div class="chart"><canvas id="cTod"></canvas></div>
+        </section>
+        <section class="card">
+          <h2>요일별 결제 비중</h2>
+          <p class="desc">2026년 5월 결제 건수 기준 (%). 엑셀 모델은 주말 매출을 0으로 둠</p>
+          <div class="legend" id="lgDow"></div>
+          <div class="chart"><canvas id="cDow"></canvas></div>
+        </section>
+      </div>
+      <div class="grid2">
+        <section class="card">
+          <h2>상권 평균매출과 지점 매출</h2>
+          <p class="desc">소상공인365 백반/한정식 평균매출(가로)과 중앙해장 실제 월매출(세로). 후보지는 오픈업 보정 중앙값 위치, 단위: 억원</p>
+          <div class="legend" id="lgArea"></div>
+          <div class="chart"><canvas id="cArea"></canvas></div>
+        </section>
+        <section class="card">
+          <h2>오픈업 매출로 본 후보지 손익</h2>
+          <p class="desc">각 후보지의 현재 비용 가정에 오픈업 보정 매출(하단·중앙·상단)을 넣은 정상화 월 영업이익. 매출이 늘면 인건비가 매출의 21.7%(서초점 최저) 아래로 내려가지 않게 인원을 늘려 계산 (단위: 만원)</p>
+          <div class="legend" id="lgOuOp"></div>
+          <div class="chart"><canvas id="cOuOp"></canvas></div>
+        </section>
+      </div>
+      <section class="card">
+        <h2>오픈업 매장 카드 12곳</h2>
+        <p class="desc">엑셀 'peer' 시트 (주로 을지로·광화문 상권). 1년 평균은 월별 추이 환산값의 평균</p>
+        <div class="tablewrap"><table class="pl num" id="peerTable"></table></div>
+      </section>
+    </div>
+
+    <div class="tabpane" id="tab-brand">
+      <section class="card">
+        <h2>지점 조사로 본 핵심</h2>
+        <p class="desc">오픈업 매장 카드(PDF, 2026년 7~8월 조회 8곳)와 웹 검색(리뷰·기사·기업정보)을 합친 결과</p>
+        <ul class="ou-ins" id="brandInsights"></ul>
+      </section>
+      <div class="grid2">
+        <section class="card">
+          <h2>지점별 매출 추이</h2>
+          <p class="desc">오픈업 1년 추정 매출을 각 지점 첫 달 = 100으로 맞춘 지수. 본점만 유지되고 가맹 지점은 내려감</p>
+          <div class="legend" id="lgBrTrend"></div>
+          <div class="chart tall"><canvas id="cBrTrend"></canvas></div>
+        </section>
+        <section class="card">
+          <h2>시간대별 결제 구성</h2>
+          <p class="desc">최근 월 결제 건수 기준 (%). 오른쪽 숫자는 주말 결제 비중</p>
+          <div class="legend" id="lgBrTod"></div>
+          <div class="chart tall"><canvas id="cBrTod"></canvas></div>
+        </section>
+      </div>
+      <section class="card">
+        <h2>지점 프로필</h2>
+        <p class="desc">입지 유형·오픈업 수치·웹에서 확인한 특징. 1년 변화는 1년 추이의 최근 4개월 평균 ÷ 첫 4개월 평균 (약 8개월 차이)</p>
+        <div class="tablewrap"><table class="pl" id="brTable"></table></div>
+      </section>
+      <div class="grid2">
+        <section class="card">
+          <h2>본사(브랜드) 정보</h2>
+          <p class="desc">(주)중앙해장 재무 (NICE평가정보, 사람인 게재) 및 기업 정보</p>
+          <div class="chart" style="height:220px"><canvas id="cHq"></canvas></div>
+          <div class="tablewrap" style="margin-top:10px"><table class="pl num" id="hqTable"></table></div>
+          <div class="note" id="hqNote"></div>
+        </section>
+        <section class="card">
+          <h2>메뉴와 가격</h2>
+          <p class="desc">2026년 리뷰 사이트 게재 가격 (본점·여의도·서초 동일)</p>
+          <div class="tablewrap"><table class="pl num" id="menuTable"></table></div>
+          <div class="note" id="menuNote"></div>
+        </section>
+      </div>
+      <section class="card">
+        <h2>역삼점 창업에 적용할 것</h2>
+        <p class="desc">버튼은 지금 편집 중인 후보지 가정에 바로 반영됩니다</p>
+        <ol class="rec" id="recList"></ol>
+      </section>
+      <section class="card">
+        <h2>출처</h2>
+        <ol class="src" id="srcList"></ol>
+      </section>
+    </div>
+
     <section class="card">
       <h2>계약 전 확인 사항</h2>
       <p class="desc">체크 상태는 이 브라우저에만 저장됩니다</p>
@@ -420,6 +542,8 @@ const GROUPS = [
     {m:'flow', l:'반경 50m 유동인구 (월평균)', type:'mnum'},
     {m:'work', l:'반경 300m 직장인구', type:'mnum'},
     {m:'avg', l:'업종 평균매출 (억, 소상공인365)', type:'mnum'},
+    {m:'ouLow', l:'오픈업 예상 월매출 하단 (억)', type:'mnum'},
+    {m:'ouHigh', l:'오픈업 예상 월매출 상단 (억)', type:'mnum'},
     {m:'openup', l:'오픈업 추정매출', type:'text'},
     {m:'pros', l:'장점', type:'area'},
     {m:'cons', l:'단점', type:'area'},
@@ -429,7 +553,7 @@ const GROUPS = [
     {sub:'공통'},
     {k:'days', l:'평일 영업일수', u:'일', min:15, max:26, step:1},
     {k:'tables', l:'테이블 수', u:'개', min:10, max:40, step:1, h:'4인석 기준'},
-    {k:'season', l:'계절·경기 보정', u:'%', min:50, max:130, step:1, h:'전체 매출에 곱함'},
+    {k:'season', l:'매출 보정 배수', u:'%', min:50, max:200, step:1, h:'전체 매출에 곱함 · 아래 버튼으로 오픈업 기준에 맞출 수 있음'},
     {sub:'점심 11:30~13:30'},
     {k:'lunchPpl', l:'테이블당 인원', u:'명', min:1, max:4, step:0.1},
     {k:'lunchTurn', l:'회전수', u:'회', min:0.5, max:4, step:0.1},
@@ -440,7 +564,7 @@ const GROUPS = [
     {k:'dinnerPrice', l:'1인 객단가', u:'원', min:15000, max:50000, step:1000},
     {sub:'주말'},
     {k:'wkDays', l:'주말 영업일수', u:'일', min:0, max:9, step:1},
-    {k:'wkRatio', l:'주말 매출 (평일 대비)', u:'%', min:0, max:150, step:5},
+    {k:'wkRatio', l:'주말 매출 (평일 대비)', u:'%', min:0, max:150, step:5, h:'중앙해장 주말 결제 비중: 서초 26%, 광화문 19% (오픈업)'},
     {sub:'배달'},
     {k:'delivFreq', l:'세대당 연간 해장국 배달', u:'회', min:0, max:12, step:0.5},
     {k:'msA', l:'점유율 (역삼1·2, 서초2)', u:'%', min:0, max:20, step:0.5},
@@ -455,6 +579,7 @@ const GROUPS = [
     {k:'openMonth', l:'오픈 월', u:'월', min:1, max:12, step:1},
     {k:'offPeak', l:'비수기(6~9월) 매출 감소', u:'%', min:0, max:40, step:1, c:true, h:'기준 매출이 1~3월 성수기 수준이라면 입력'},
     {k:'peak', l:'성수기(12~2월) 매출 증가', u:'%', min:0, max:30, step:1, c:true},
+    {k:'decay', l:'오픈 효과 감소 (1년에 걸쳐)', u:'%', min:0, max:60, step:1, c:true, h:'가맹 지점 오픈업 추이: 1년 새 19~46% 감소 · 13개월차부터 이 만큼 낮은 매출 유지'},
   ]},
   {id:'cogs', title:'매출원가·부가세', sub:'매출 대비 %', items:[
     {k:'vat', l:'부가세 부담', u:'%', min:0, max:10, step:0.5, c:true, h:'엑셀 10% · 서초점 실제 적립 5%'},
@@ -522,7 +647,7 @@ const EXCEL = {
   dinnerPpl:3, dinnerTurn:2, dinnerPrice:30000,
   wkDays:0, wkRatio:60,
   delivFreq:3, msA:5, msB:10, delivPrice:20000, delivDays:22,
-  rampMonths:0, rampStart:70, openMonth:1, offPeak:0, peak:0,
+  rampMonths:0, rampStart:70, openMonth:1, offPeak:0, peak:0, decay:0,
   vat:10, ck:35, veg:4, liq:2.5, sup:1, loss:2,
   kFte:4, kWage:232.32, hFte:4.5, hWage:241.71, night:0, ins:11.5, sev:8.33, opSalary:0,
   rent:1500, rentFree:3, mgmt:100, elec:200, gas:250,
@@ -532,12 +657,12 @@ const EXCEL = {
   myInvest:50, myProfit:50, hold:60, exitPremium:0, disc:8,
 };
 // 프리셋은 비용 구조 항목만 덮어씀 (점포·매출 고유값 유지, '보수적'은 매출 할인 포함)
-const COST_KEYS = ['vat','ck','veg','liq','sup','loss','kFte','kWage','hFte','hWage','night','ins','sev','card','delivFee','royalty','taxMode','offPeak'];
+const COST_KEYS = ['vat','ck','veg','liq','sup','loss','kFte','kWage','hFte','hWage','night','ins','sev','card','delivFee','royalty','taxMode','offPeak','decay'];
 const PRESETS = {
   excel: {},
   seocho: {vat:5, ck:39, veg:6.5, liq:2.5, sup:0.5, loss:0, kFte:5, kWage:350, hFte:6.5, hWage:260, card:1.4, delivFee:25, taxMode:'prog'},
   cons: {vat:5, ck:39, veg:6.5, liq:2.5, sup:0.5, loss:0, kFte:5, kWage:350, hFte:6.5, hWage:260, card:1.4, delivFee:25, taxMode:'prog', offPeak:15,
-         lunchTurn:2.0, dinnerTurn:1.5, msA:2.5, msB:5, rampMonths:4, rampStart:70},
+         lunchTurn:2.0, dinnerTurn:1.5, msA:2.5, msB:5, rampMonths:4, rampStart:70, decay:25},
 };
 const CRITERIA = [
   ['vis','가시성·접근성'],['flow','유동인구'],['lunch','직장인구·점심 수요'],['dinner','저녁·회식 수요'],
@@ -545,13 +670,13 @@ const CRITERIA = [
 ];
 const SEED_SITES = [
   {name:'역삼 GFC', p:{}, q:{vis:3,flow:2,lunch:4,dinner:3,comp:3,lease:4,env:4},
-   m:{addr:'서울 강남구 논현로85길 33', floor:'B1 (외부노출형, 실제 1층)', area:50, flow:1424, work:63848, avg:0.78, openup:'1.8~2.2억',
+   m:{addr:'서울 강남구 논현로85길 33', floor:'B1 (외부노출형, 실제 1층)', area:50, flow:1424, work:63848, avg:0.78, ouLow:1.8, ouHigh:2.2, openup:'1.8~2.2억',
       pros:'변호사·세무사·회계사 등 전문직 다수, 평지·사거리 코너, 깔끔한 주변·무권리', cons:'높은 경쟁, 50m 유동인구 적음(먹자골목 끝자락), 언덕 근처', memo:'렌트프리 3개월 · 푸카커피역삼 지하1층'}},
   {name:'역삼 GS', p:{deposit:20000, mgmt:90, rentFree:0}, q:{vis:4,flow:5,lunch:4,dinner:5,comp:2,lease:3,env:2},
-   m:{addr:'서울 강남구 논현로94길 24', floor:'1층', area:49, flow:12867, work:52936, avg:1.53, openup:'2.2~2.6억',
+   m:{addr:'서울 강남구 논현로94길 24', floor:'1층', area:49, flow:12867, work:52936, avg:1.53, ouLow:2.2, ouHigh:2.6, openup:'2.2~2.6억',
       pros:'기업 회식 수요, 매우 높은 유동인구', cons:'높은 경쟁, 높은 보증금, 유흥가 거리', memo:'김양 매장 자리 · 렌트프리 미확인 · 매출 가정은 GFC와 동일하게 시작'}},
 ];
-const BLANK_META = {addr:'',floor:'',area:'',flow:'',work:'',avg:'',openup:'',pros:'',cons:'',memo:''};
+const BLANK_META = {addr:'',floor:'',area:'',flow:'',work:'',avg:'',ouLow:'',ouHigh:'',openup:'',pros:'',cons:'',memo:''};
 
 const SEOCHO = {
   rev:[219133500,186143000,193630500],
@@ -566,6 +691,65 @@ const BRANCH = [
   ['광화문', [209280400,163425000,176106000]],
 ];
 const FLOW_BRANCH = [['마곡',3793],['여의도',3233],['서초',2229],['광화문',1799]];
+// 오픈업 매장 카드(PDF): 월별 추정(억, 최근 월 추정치 기준 환산), 시간대·요일 결제 비중(%)
+const CARDS = {"months":["25/08","25/09","25/10","25/11","25/12","26/01","26/02","26/03","26/04","26/05","26/06","26/07","26/08"],"b":{"여의도":{"m":[null,4.719,3.491,2.865,3.804,3.731,1.902,2.985,2.528,1.781,2.094,2.215,1.95],"latest":[1.8,2.1],"latestLab":"8월","tod":[2.2,42.5,5.0,20.8,26.4,3.1,0.0],"dow":[15.5,15.9,13.2,19.5,18.0,9.1,8.8],"chg4":-0.46,"chg":-0.587,"q1est":2.873,"q1act":2.276,"ratio":0.792},"서초":{"m":[1.973,2.463,2.136,2.272,2.544,2.544,1.959,2.354,1.905,1.646,1.578,2.0,null],"latest":[1.8,2.2],"latestLab":"7월","tod":[6.2,44.9,8.7,22.8,15.2,2.2,0.0],"dow":[15.1,12.5,13.7,14.8,16.4,14.6,13.0],"chg4":-0.194,"chg":0.014,"q1est":2.286,"q1act":1.996,"ratio":0.873},"광화문":{"m":[null,2.35,2.133,2.3,2.85,2.333,1.583,1.85,2.017,1.867,1.85,1.75,1.55],"latest":[1.4,1.7],"latestLab":"8월","tod":[1.6,52.5,6.1,20.1,15.6,4.1,0.0],"dow":[9.0,20.2,16.3,19.5,17.7,7.2,10.0],"chg4":-0.272,"chg":-0.34,"q1est":1.922,"q1act":1.829,"ratio":0.952},"원그로브":{"m":[3.247,3.61,3.567,2.905,4.144,3.204,1.944,2.371,1.837,1.751,1.666,2.2,null],"latest":[2.0,2.4],"latestLab":"7월","tod":[2.0,54.2,8.0,17.7,18.1,0.0,0.0],"dow":[9.0,12.4,18.2,21.4,15.9,13.8,9.3],"chg4":-0.441,"chg":-0.322,"q1est":2.506,"q1act":1.772,"ratio":0.707},"본점":{"m":[null,5.484,6.356,5.991,7.172,5.625,4.162,5.287,6.3,5.934,5.709,6.244,5.85],"latest":[5.4,6.3],"latestLab":"8월","tod":[9.0,33.3,12.0,16.2,17.9,9.2,2.4],"dow":[9.4,11.7,13.6,14.0,15.7,18.8,16.7],"chg4":-0.051,"chg":0.067},"송파":{"m":[null,0.236,0.269,0.206,0.299,0.29,0.232,0.256,0.213,0.191,0.167,0.144,0.29],"latest":[0.23,0.35],"latestLab":"8월","tod":[13.3,32.9,30.7,23.1,0.0,0.0,0.0],"dow":[13.5,14.7,10.2,7.6,16.3,15.7,22.1],"chg4":-0.216,"chg":0.229},"압구정":{"m":[null,0.157,0.211,0.271,0.23,0.274,0.166,0.219,0.181,0.138,0.128,0.157,0.175],"latest":[0.14,0.21],"latestLab":"8월","tod":[21.8,32.2,29.1,16.8,0.0,0.0,0.0],"dow":[10.6,4.4,10.6,9.9,13.0,29.1,22.3],"chg4":-0.312,"chg":0.115}}};
+// 같은 달(26년 1~3월) 오픈업 추정 vs 실제 결산 월평균, 소상공인365 백반/한정식 평균매출 (억원)
+const OU_BRANCH = [['여의도','여의도',0.86],['마곡','원그로브',0.52],['광화문','광화문',0.91],['서초','서초',0.68]]
+  .map(([n,k,area])=>({n, est:CARDS.b[k].q1est, act:CARDS.b[k].q1act, area, latest:CARDS.b[k].latest, latestLab:CARDS.b[k].latestLab}));
+const OU_RATIOS = OU_BRANCH.map(b=>b.act/b.est);
+const OU_CAL = {lo:Math.min(...OU_RATIOS), mid:OU_RATIOS.reduce((a,b)=>a+b,0)/OU_RATIOS.length, hi:Math.max(...OU_RATIOS)};
+// 오픈업 매장 카드 (엑셀 peer 시트): 월별은 25/06~26/05, 억원 / tod: 아침·점심·오후·저녁·밤·심야·새벽 / dow: 월~일 (결제 건수 %)
+const OU_MONTHS = ['25/06','25/07','25/08','25/09','25/10','25/11','25/12','26/01','26/02','26/03','26/04','26/05'];
+const PEERS = [{"n":"청종나주곰탕(중구)","c":"한식국물","may":[0.3,0.46],"m":[0.501,0.393,0.316,0.457,0.329,0.431,0.529,0.629,0.321,0.408,0.388,0.38],"tod":[0.0,74.3,14.4,9.9,1.5,0.0,0.0],"dow":[8.0,14.9,17.0,26.4,33.8,0.0,0.0]},{"n":"세광양대창 을지로","c":"곱창","may":[0.53,0.65],"m":[0.604,0.546,0.481,0.522,0.349,0.848,0.888,0.682,0.671,0.434,0.488,0.59],"tod":[0.0,13.8,9.0,29.5,40.6,7.1,0.0],"dow":[12.4,16.5,11.1,19.8,15.8,10.1,14.4]},{"n":"중앙해장 광화문","c":"한정식/백반","may":[1.6,2.0],"m":[3.333,2.77,2.363,2.334,2.081,2.278,2.869,2.32,1.519,1.786,1.955,1.8],"tod":[1.9,48.7,6.9,18.0,18.4,6.2,0.0],"dow":[13.3,10.9,20.4,19.3,17.5,10.3,8.2]},{"n":"이남장 을지로","c":"한식국물","may":[1.3,1.5],"m":[1.57,1.47,1.57,2.02,1.72,1.75,2.49,2.05,1.37,1.55,1.54,1.4],"tod":[4.3,53.7,10.5,21.5,10.1,0.0,0.0],"dow":[14.2,13.0,16.8,13.1,16.5,12.2,14.1]},{"n":"한국관(을지로)","c":"고기구이","may":[1.1,1.3],"m":[1.056,0.806,1.05,1.075,0.944,0.906,1.556,1.319,0.819,1.063,1.006,1.2],"tod":[13.0,28.1,1.8,10.9,18.6,9.9,17.8],"dow":[14.7,12.7,13.2,20.3,14.4,11.3,13.4]},{"n":"금돈옥 을지로","c":"한식기타","may":[2.4,2.8],"m":[4.7,4.24,3.26,3.7,2.96,3.86,3.84,3.54,2.02,2.32,2.62,2.6],"tod":[0.0,32.9,9.8,25.5,31.8,0.0,0.0],"dow":[11.9,11.9,12.9,16.7,22.4,10.1,14.1]},{"n":"청담동순도리 을지로3가","c":"한정식/백반","may":[0.58,0.71],"m":[0.794,0.871,0.862,0.875,0.857,0.938,1.064,1.182,0.672,0.862,0.686,0.645],"tod":[0.0,62.4,4.5,14.2,10.8,8.2,0.0],"dow":[11.1,15.9,21.7,21.4,17.4,6.7,5.8]},{"n":"여명 광화문해장","c":"한정식/백반","may":[0.39,0.59],"m":[null,null,null,null,null,null,null,1.087,0.584,0.731,0.588,0.49],"tod":[0.0,75.0,3.3,12.0,9.6,0.0,0.0],"dow":[8.7,15.7,18.9,25.7,20.4,4.4,6.2]},{"n":"일품양평해장국 종각","c":"한식국물","may":[0.33,0.5],"m":[0.355,0.319,0.451,0.462,0.588,0.533,0.684,0.577,0.355,0.481,0.41,0.415],"tod":[22.8,30.0,8.8,9.4,5.1,13.3,10.5],"dow":[10.6,12.0,14.4,15.9,13.1,17.6,16.5]},{"n":"중앙해장 서초","c":"한정식/백반","may":[1.5,1.9],"m":[2.225,2.328,2.042,2.567,2.213,2.35,2.647,2.647,2.031,2.453,1.974,1.7],"tod":[6.4,41.5,8.0,21.7,20.2,2.2,0.0],"dow":[14.1,13.8,15.7,15.6,15.3,12.6,12.9]},{"n":"창고43 명동","c":"고기구이","may":[1.7,2.0],"m":[null,null,null,null,null,null,null,null,null,null,2.697,1.85],"tod":[0.0,54.5,1.1,22.0,22.4,0.0,0.0],"dow":[10.4,15.8,27.4,23.4,10.9,7.3,4.7]},{"n":"뚝심 센터원","c":"고기구이","may":[1.2,1.5],"m":[3.316,6.574,2.905,5.605,1.966,3.463,8.071,3.434,3.404,2.935,2.084,1.35],"tod":[0.0,48.6,0.0,12.9,38.5,0.0,0.0],"dow":[23.4,13.9,27.7,26.9,6.9,1.3,0.0]}];
+const JH_ACT = {'중앙해장 광화문':[null,null,null,null,null,null,null,2.0928,1.6343,1.7611,null,null], '중앙해장 서초':[null,null,null,null,null,null,null,2.1916,1.8614,1.9363,null,null]};
+// 매출을 오픈업 수준으로 올릴 때 인건비가 서초점 최저 비율(21.7%) 아래로 내려가지 않도록 인원을 늘려 계산
+const LABOR_FLOOR = 0.217;
+function ouAt(p, targetEok, opt={}){
+  const base=calc(p), mult=targetEok*1e8/base.sales;
+  let r=calc(p,{basis:'y2',...opt,mult});
+  if(r.labor/r.sales < LABOR_FLOOR){
+    const need=LABOR_FLOOR*r.sales - r.owner, cur=r.labor - r.owner, f=need/cur;
+    r=calc({...p,kFte:p.kFte*f,hFte:p.hFte*f},{basis:'y2',...opt,mult});
+  }
+  return r;
+}
+function ouPayback(p, targetEok){
+  const base=calc(p), m=targetEok*1e8/base.sales, r=calc(p,{mult:m});
+  let q={...p, season:p.season*m};
+  if(r.labor/r.sales < LABOR_FLOOR){ const f=(LABOR_FLOOR*r.sales-r.owner)/(r.labor-r.owner); q.kFte*=f; q.hFte*=f; }
+  return timeline(q).payback;
+}
+const HQ = [ // (주)중앙해장, 억원 (NICE평가정보 via 사람인)
+  {y:2022, rev:78.47, op:7.00, net:6.16},{y:2023, rev:81.33, op:4.44, net:3.88},{y:2024, rev:81.72, op:-3.81, net:-3.10},{y:2025, rev:78.86, op:-6.86, net:-4.85}];
+const MENU = [['한우 양선지해장국','14,000'],['한우 해내탕','15,000'],['한우 1++ 양지곰탕','16,000'],['한우 내장탕','16,000'],['한우 뚝배기불고기','16,000'],['한우 우족탕','23,000'],['한우 1++ 사태무침','22,000'],['해장군만두','8,000'],['곱창전골 중 / 대','67,000 / 98,000'],['한우 1++ 양지수육 중 / 대','47,000 / 83,000~84,000']];
+const BR_PROFILE = {
+  '본점':{nm:'본점 (삼성·대치)', type:'오피스·회식 + 24시간', web:'2016년 개점. 2019년 기사 기준 24시간 영업(일 22시~월 10:30 휴무). 룸·콜키지, 평점 4.3(리뷰 321), 밤에도 웨이팅. 주차 부족', cust:'남성 64% · 40대 남성 최다 · 유자녀 가족 64%'},
+  '여의도':{nm:'여의도', type:'금융가 오피스 (빌딩 2층)', web:'신한투자증권타워 2층. 평일 11시부터 웨이팅, 점심 예약 가능. 평점 3.6, "본점보다 아쉽다"·선지·김치 지적 리뷰. 유료주차', cust:'남성 63% · 40대 남성 21%'},
+  '서초':{nm:'서초 (법원로)', type:'법조타운 + 주거 (1층)', web:'법원로2길 1층. 오전 9시 오픈, 발렛. 평점 3.9, "본점보다 덜 붐빔", 점심 회전 빠름', cust:'남성 66% · 50대 남성 20%'},
+  '광화문':{nm:'광화문', type:'도심 오피스', web:'새문안로3길. 점심 결제 비중이 가장 높음(53%)', cust:'남성 60% · 40대 남성 18%'},
+  '원그로브':{nm:'마곡 (원그로브)', type:'신축 오피스·쇼핑몰 복합', web:'공항대로 165 원그로브. 오피스 임차가 진행 중인 신규 업무지구', cust:'남성 59% · 40대 남성 23%'},
+  '압구정':{nm:'압구정', type:'아파트 단지 상가 (소형)', web:'주소가 압구정 현대아파트 단지. 20시 이후 결제 없음', cust:'여성 61% · 50대 여성 23% · 유자녀 가족 86%'},
+  '송파':{nm:'송파', type:'주거 (소형)', web:'송파대로. 20시 이후 결제 없음, 일요일 22%', cust:'여성 67% · 40대 여성 24% · 유자녀 가족 81%'},
+};
+const SOURCES = [
+  ['오픈업 매장 카드 (사용자 제공 PDF, 2026년 7~8월 조회)', null],
+  ['지역내일 「강남 술꾼들의 해장국 맛집 ‘중앙해장’」 (2019.6)', 'https://www.localnaeil.com/News/View/640046'],
+  ['polle — 중앙해장 본점(대치) 메뉴·리뷰', 'https://polle.com/place/4wVWYv/%EC%A4%91%EC%95%99%ED%95%B4%EC%9E%A5'],
+  ['polle — 중앙해장 여의도점 메뉴·리뷰', 'https://polle.com/place/2orDFw/%EC%A4%91%EC%95%99%ED%95%B4%EC%9E%A5'],
+  ['polle — 중앙해장 서초점 메뉴·리뷰', 'https://polle.com/place/5zbqQy/%EC%A4%91%EC%95%99%ED%95%B4%EC%9E%A5'],
+  ['핫플레이스헌터 「24시간 영업 서울 맛집」 (중앙축산 유래)', 'https://hotplacehunter.co.kr/sns/article/88431/'],
+  ['사람인 — (주)중앙해장 재무정보 (NICE평가정보)', 'https://www.saramin.co.kr/zf_user/company-info/view-inner-finance/csn/cGtMMTlSdmJOeTJHb0ZEWFArckNRQT09/company_nm/(%EC%A3%BC)%EC%A4%91%EC%95%99%ED%95%B4%EC%9E%A5'],
+  ['R&D Circle — 중앙해장 기업 정보', 'https://app.rndcircle.io/company/a3eb0c20-46ae-5f79-9300-051c8bfd7318'],
+  ['중앙식탁 (중앙해장 온라인몰, (주)제이에이치컴퍼니)', 'https://joongangfnb.com/'],
+  ['당근부동산 — 압구정로29길 71 (현대아파트)', 'https://realty.daangn.com/articles/2977766'],
+  ['파이낸셜뉴스 「가맹사업법 시행령 개정」 (2026.7.28)', 'https://www.fnnews.com/news/202607281146532875'],
+];
+function ouBand(sx){
+  const lo=parseFloat(sx.m.ouLow), hi=parseFloat(sx.m.ouHigh);
+  if(!isFinite(lo)||!isFinite(hi)||hi<=0) return null;
+  const mid=(lo+hi)/2;
+  return {rawLo:lo, rawHi:hi, rawMid:mid, lo:mid*OU_CAL.lo, mid:mid*OU_CAL.mid, hi:mid*OU_CAL.hi};
+}
 
 /* ===================== 계산 엔진 ===================== */
 function calc(s, opt={}){
@@ -627,7 +811,8 @@ function monthly(s, months){
   for(let m=1;m<=months;m++){
     let ramp=1;
     if(s.rampMonths>0 && m<=s.rampMonths) ramp = s.rampStart/100 + (1-s.rampStart/100)*(m-1)/s.rampMonths;
-    out.push(calc(s,{mult:ramp*seasonFactor(s,m), rentMonth: m<=s.rentFree ? 0 : s.rent*1e4}).cf);
+    const fade = 1 - (s.decay||0)/100*Math.min(m-1,12)/12;
+    out.push(calc(s,{mult:ramp*seasonFactor(s,m)*fade, rentMonth: m<=s.rentFree ? 0 : s.rent*1e4}).cf);
   }
   return out;
 }
@@ -714,7 +899,9 @@ function serialize(){
 function deserialize(o){
   if(!o || o.v!==2 || !Array.isArray(o.sites) || !o.sites.length) return false;
   const st = defaultState();
-  st.sites = o.sites.slice(0,MAX_SITES).map((x,i)=>{ const s=newSite({name:x.n||`후보지 ${i+1}`, p:x.d, m:x.m, q:x.q, preset:x.pr}, (x.sl??i)%8); if(x.sd) s.seed=x.sd; return s; });
+  st.sites = o.sites.slice(0,MAX_SITES).map((x,i)=>{ const s=newSite({name:x.n||`후보지 ${i+1}`, p:x.d, m:x.m, q:x.q, preset:x.pr}, (x.sl??i)%8); if(x.sd) s.seed=x.sd;
+    const sd=SEED_SITES.find(z=>z.name===s.name); if(sd) for(const k in sd.m){ if(s.m[k]===''||s.m[k]==null) s.m[k]=sd.m[k]; }
+    return s; });
   st.active = st.sites[Math.max(0,Math.min(o.active||0, st.sites.length-1))].id;
   Object.assign(st, {basis:o.basis||'y1', sync:!!o.sync, tab:o.tab||'single', goal:o.goal??2000});
   if(o.w) st.w={...st.w,...o.w}; if(o.mc) st.mc={...st.mc,...o.mc};
@@ -787,6 +974,12 @@ function buildPanel(){
     setParam(k,v); syncInputs(k); schedule();
   });
 }
+fieldsEl.addEventListener('click', e=>{
+  if(e.target.id!=='fitOu') return;
+  const st=site(), b=ouBand(st); if(!b) return;
+  const cur=calc(st.p).sales; const v=Math.round(st.p.season*b.mid*1e8/cur*10)/10;
+  st.p.season=v; syncInputs('season'); schedule(); toast(`매출 보정 배수를 ${v}%로 맞췄습니다 (월매출 ${b.mid.toFixed(2)}억)`);
+});
 function setParam(k,v){
   const targets = (ST.sync && COMMON.has(k)) ? ST.sites : [site()];
   targets.forEach(x=>{ x.p[k]=v; if(COST_KEYS.includes(k)) x.preset='custom'; });
@@ -936,6 +1129,21 @@ const valueLabelsH = {id:'vlh', afterDatasetsDraw(ch){
   ch.getDatasetMeta(0).data.forEach((b,i)=>{ const v=ch.data.datasets[0].data[i]; ctx.fillText(Math.round(v).toLocaleString('ko-KR'), b.x+6, b.y); });
   ctx.restore();
 }};
+const pointLabels = {id:'pl', afterDatasetsDraw(ch){
+  const {ctx}=ch; ctx.save(); ctx.font='12px Pretendard, sans-serif'; ctx.fillStyle=cssv('--text-2'); ctx.textBaseline='middle';
+  ch.data.datasets.forEach((ds,di)=>ch.getDatasetMeta(di).data.forEach((pt,i)=>{ const d=ds.data[i]; if(!d || !d.n) return; ctx.textAlign = di===0 ? 'left' : 'right'; ctx.fillText(d.n, di===0 ? pt.x+9 : pt.x-10, di===0 ? pt.y : pt.y-10); }));
+  ctx.restore();
+}};
+const weekendLabels = {id:'wl', afterDatasetsDraw(ch){
+  const {ctx}=ch, xs=ch.scales.x; ctx.save(); ctx.font='600 12px Pretendard, sans-serif'; ctx.fillStyle=cssv('--text-2'); ctx.textBaseline='middle';
+  const meta=ch.getDatasetMeta(0); (ch.$wk||[]).forEach((w,i)=>{ const b=meta.data[i]; if(b) ctx.fillText('주말 '+w.toFixed(0)+'%', xs.getPixelForValue(100)+6, b.y); });
+  ctx.restore();
+}};
+const hqLabels = {id:'hl', afterDatasetsDraw(ch){
+  const {ctx}=ch; ctx.save(); ctx.font='600 12px Pretendard, sans-serif'; ctx.fillStyle=cssv('--text-2'); ctx.textAlign='center';
+  ch.getDatasetMeta(0).data.forEach((b,i)=>{ const v=ch.data.datasets[0].data[i]; ctx.fillText((v>0?'+':'')+v.toFixed(1)+'억', b.x, v>=0 ? b.y-6 : b.y+14); });
+  ctx.restore();
+}};
 function rebuildCharts(){
   if(!window.Chart) return;
   Object.values(charts).forEach(c=>c.destroy()); charts={};
@@ -1008,6 +1216,56 @@ function rebuildCharts(){
   o.scales.y.ticks.callback=v=>v+'%';
   o.plugins.tooltip.callbacks.label=c=>' '+c.dataset.label+': '+c.parsed.y.toFixed(1)+'%';
   mk('cIrr',{type:'line',data:{datasets:[]},options:o});
+
+  // 오픈업: 보정 차트
+  o=baseOpts(); o.indexAxis='y'; o.scales.y.grid={display:false}; o.scales.x.ticks.callback=v=>v.toFixed(1); o.scales.x.min=0;
+  o.plugins.tooltip.callbacks={label:c=>{ const d=c.raw; if(d==null) return null; return Array.isArray(d) ? ' '+c.dataset.label+': '+d[0].toFixed(2)+' ~ '+d[1].toFixed(2)+'억' : ' '+c.dataset.label+': '+(+d).toFixed(2)+'억'; }};
+  o.plugins.tooltip.filter=c=>c.raw!=null;
+  mk('cCal',{type:'bar',data:{labels:[],datasets:[
+    {label:'후보지 오픈업 예상',data:[],backgroundColor:[],grouped:false,borderRadius:4,borderSkipped:false,barPercentage:.7},
+    {label:'보정 범위·차이',data:[],backgroundColor:[],grouped:false,borderRadius:3,borderSkipped:false,barPercentage:.22},
+    {label:'오픈업 1~3월 추정',type:'line',data:[],showLine:false,pointRadius:6,pointHoverRadius:7,backgroundColor:surf,borderColor:cssv('--text-2'),borderWidth:2},
+    {label:'실제 1~3월 평균',type:'line',data:[],showLine:false,pointRadius:6,pointHoverRadius:7,backgroundColor:cssv('--text'),borderColor:surf,borderWidth:2},
+  ]},options:o});
+  // 오픈업: 월별 추이
+  o=baseOpts(); o.scales.x.grid={display:false}; o.scales.x.ticks.maxRotation=0; o.scales.y.ticks.callback=v=>v.toFixed(1);
+  o.interaction={mode:'index',intersect:false};
+  o.plugins.tooltip.callbacks={label:c=>c.raw==null?null:' '+c.dataset.label+': '+c.parsed.y.toFixed(2)+'억'};
+  o.plugins.tooltip.filter=c=>c.raw!=null;
+  mk('cTrend',{type:'line',data:{labels:OU_MONTHS,datasets:[]},options:o});
+  // 오픈업: 시간대·요일
+  for(const id of ['cTod','cDow']){
+    o=baseOpts(); o.scales.x.grid={display:false}; o.scales.x.ticks.maxRotation=0; o.scales.y.ticks.callback=v=>v+'%';
+    o.plugins.tooltip.callbacks={label:c=>' '+c.dataset.label+': '+c.parsed.y.toFixed(1)+'%'};
+    mk(id,{type:'bar',data:{labels:[],datasets:[]},options:o});
+  }
+  // 오픈업: 상권 평균 vs 실제
+  o=baseOpts(); o.scales.x.type='linear'; o.scales.x.title={display:true,text:'상권 백반/한정식 평균매출 (억)',color:cssv('--text-3')};
+  o.scales.x.ticks.callback=v=>v.toFixed(1); o.scales.y.ticks.callback=v=>v.toFixed(1); o.scales.y.title={display:true,text:'지점 월매출 (억)',color:cssv('--text-3')};
+  o.plugins.tooltip.callbacks={label:c=>' '+c.raw.n+': 상권 '+c.raw.x.toFixed(2)+'억 → 매출 '+c.raw.y.toFixed(2)+'억'};
+  mk('cArea',{type:'scatter',data:{datasets:[]},options:o, plugins:[pointLabels]});
+  // 오픈업: 후보지 손익
+  o=baseOpts(); o.scales.x.grid={display:false}; o.scales.x.ticks.maxRotation=0; o.scales.y.ticks.callback=yMan;
+  o.plugins.tooltip.callbacks={label:c=>' '+c.dataset.label+': '+Math.round(c.parsed.y).toLocaleString('ko-KR')+'만원'};
+  mk('cOuOp',{type:'bar',data:{labels:[],datasets:[
+    {label:'보정 하단',data:[],backgroundColor:[],borderRadius:4,borderSkipped:false,categoryPercentage:.72,barPercentage:.92},
+    {label:'보정 중앙',data:[],backgroundColor:[],borderRadius:4,borderSkipped:false,categoryPercentage:.72,barPercentage:.92},
+    {label:'보정 상단',data:[],backgroundColor:[],borderRadius:4,borderSkipped:false,categoryPercentage:.72,barPercentage:.92},
+  ]},options:o});
+  // 지점·창업: 추이 지수
+  o=baseOpts(); o.scales.x.grid={display:false}; o.scales.x.ticks.maxRotation=0; o.scales.x.ticks.autoSkip=true; o.scales.x.ticks.maxTicksLimit=7;
+  o.scales.y.ticks.callback=v=>v; o.interaction={mode:'index',intersect:false};
+  o.plugins.tooltip.callbacks={label:c=>c.raw==null?null:' '+c.dataset.label+': '+Math.round(c.parsed.y)}; o.plugins.tooltip.filter=c=>c.raw!=null;
+  mk('cBrTrend',{type:'line',data:{labels:CARDS.months,datasets:[]},options:o});
+  // 지점·창업: 시간대 100% 누적
+  o=baseOpts(); o.indexAxis='y'; o.scales.x.stacked=true; o.scales.y.stacked=true; o.scales.x.max=100; o.scales.x.ticks.callback=v=>v+'%';
+  o.scales.y.grid={display:false}; o.layout={padding:{right:70}};
+  o.plugins.tooltip.callbacks={label:c=>' '+c.dataset.label+': '+c.parsed.x.toFixed(0)+'%'};
+  mk('cBrTod',{type:'bar',data:{labels:[],datasets:[]},options:o, plugins:[weekendLabels]});
+  // 본사 영업이익
+  o=baseOpts(); o.scales.x.grid={display:false}; o.scales.y.ticks.callback=v=>v+'억'; o.scales.x.ticks.maxRotation=0;
+  o.plugins.tooltip.callbacks={label:c=>' 영업이익 '+c.parsed.y.toFixed(1)+'억 (매출 '+HQ[c.dataIndex].rev.toFixed(1)+'억)'};
+  mk('cHq',{type:'bar',data:{labels:HQ.map(h=>h.y+''),datasets:[{data:HQ.map(h=>h.op),backgroundColor:HQ.map(h=>h.op>=0?cssv('--good'):cssv('--bad')),borderRadius:4,borderSkipped:false,maxBarThickness:48}]},options:o, plugins:[hqLabels]});
   render();
 }
 
@@ -1024,7 +1282,9 @@ function render(){
 
   document.getElementById('revDerived').innerHTML =
     `점심 <b>${Math.round(p.tables*p.lunchPpl*p.lunchTurn)}명/일</b> · 저녁 <b>${Math.round(p.tables*p.dinnerPpl*p.dinnerTurn)}명/일</b> · 배달 <b>${(r.delivOrders/Math.max(p.delivDays,1)).toFixed(0)}건/일</b><br>`+
-    `좌석 ${p.tables*4}석 · 월매출 <b>${eok(r.sales)}억</b>`;
+    `좌석 ${p.tables*4}석 · 월매출 <b>${eok(r.sales)}억</b>`+
+    (()=>{ const b=ouBand(st); return b ? `<br>오픈업 보정 <b>${b.lo.toFixed(2)}~${b.hi.toFixed(2)}억</b> (중앙 ${b.mid.toFixed(2)}억) · 현재 가정은 중앙값의 <b>${(r.sales/1e8/b.mid*100).toFixed(0)}%</b><br><button class="btn sm" id="fitOu" type="button" style="margin-top:6px">오픈업 보정 중앙값에 맞추기</button>`
+      : '<br><span style="color:var(--text-3)">후보지 정보에 오픈업 예상 매출을 넣으면 비교됩니다</span>'; })();
   document.getElementById('laborDerived').innerHTML =
     `총 <b>${(p.kFte+p.hFte).toFixed(1)}명</b> · 월 인건비(보험·퇴직${p.opSalary?'·운영자':''} 포함) <b>${man(r.labor)}만원</b> · 매출 대비 <b>${pct(r.labor/r.sales)}</b><br>서초점 실적 21.7~26.7%`;
 
@@ -1044,6 +1304,8 @@ function render(){
   if(ST.tab==='compare') renderCompare();
   if(ST.tab==='risk'){ clearTimeout(mcTimer); mcTimer=setTimeout(renderRisk, 120); }
   if(ST.tab==='deal') renderDeal();
+  if(ST.tab==='ou') renderOu();
+  if(ST.tab==='brand') renderBrand();
 }
 
 function renderSingle(st,p,r,x,tl){
@@ -1147,11 +1409,13 @@ function compareRows(){
   const B=ST.basis;
   const data = ST.sites.map(sx=>{
     const p=sx.p, y2=calc(p,{basis:'y2'}), y1=calc(p,{basis:'y1'}), r=calc(p,{basis:B});
-    return {sx,p,r,y1,y2,tl:timeline(p),b1:bep(p,B,true),irr:annual(irrMonthly(exitFlows(p))),mc:mcFor(sx)};
+    const band=ouBand(sx);
+    return {sx,p,r,y1,y2,tl:timeline(p),b1:bep(p,B,true),irr:annual(irrMonthly(exitFlows(p))),mc:mcFor(sx),band,
+      ouLo:band&&ouAt(p,band.lo), ouMid:band&&ouAt(p,band.mid), ouHi:band&&ouAt(p,band.hi), ouPay:band?ouPayback(p,band.mid):null};
   });
   const n=(v,d=0)=>v==null||!isFinite(v)?'—':Number(v).toLocaleString('ko-KR',{maximumFractionDigits:d,minimumFractionDigits:d});
   const num = v => v===''||v==null ? null : +v;
-  const R=(l,vals,fmt,better,nullWorst)=>({l,vals,fmt,better,nullWorst});
+  const R=(l,vals,fmt,better,nullWorst,disp)=>({l,vals,fmt,better,nullWorst,disp});
   const rows=[
     {grp:'수익성'},
     R('월 매출 (억)', data.map(d=>d.r.sales/1e8), v=>n(v,2), 'up'),
@@ -1177,6 +1441,14 @@ function compareRows(){
     R('반경 300m 직장인구', data.map(d=>num(d.sx.m.work)), v=>n(v), 'up'),
     R('업종 평균매출 (억)', data.map(d=>num(d.sx.m.avg)), v=>n(v,2), 'up'),
     R('정성 평가 (5점 만점)', data.map(d=>qualScore(d.sx)), v=>n(v,2), 'up'),
+    {grp:'오픈업 기준 (같은 달 실제/추정 '+OU_CAL.lo.toFixed(2)+'~'+OU_CAL.hi.toFixed(2)+'배로 보정 · 인건비 최소 매출의 21.7%)'},
+    R('오픈업 예상 월매출 (억)', data.map(d=>d.band?d.band.rawMid:null), v=>n(v,2), 'up', false, i=>{ const b=data[i].band; return b?`${b.rawLo}~${b.rawHi}`:'—'; }),
+    R('실적 보정 범위 (억)', data.map(d=>d.band?d.band.mid:null), v=>n(v,2), 'up', false, i=>{ const b=data[i].band; return b?`${b.lo.toFixed(2)}~${b.hi.toFixed(2)}`:'—'; }),
+    R('현재 가정 ÷ 보정 중앙값', data.map(d=>d.band?d.r.sales/1e8/d.band.mid:null), v=>v==null?'—':pct(v,0), null),
+    R('영업이익 @보정 하단 (만원, 정상화)', data.map(d=>d.ouLo?d.ouLo.op/1e4:null), v=>n(v), 'up'),
+    R('영업이익 @보정 중앙 (만원, 정상화)', data.map(d=>d.ouMid?d.ouMid.op/1e4:null), v=>n(v), 'up'),
+    R('영업이익 @보정 상단 (만원, 정상화)', data.map(d=>d.ouHi?d.ouHi.op/1e4:null), v=>n(v), 'up'),
+    R('회수기간 @보정 중앙 (개월)', data.map(d=>d.band?d.ouPay:null), v=>n(v,1), 'down', true, i=>!data[i].band?'—':(data[i].ouPay==null?'60+':n(data[i].ouPay,1))),
     {grp:'리스크 (리스크 탭 설정 기준)'},
     R('영업적자 확률', data.map(d=>d.mc.pLoss), v=>pct(v,0), 'down'),
     R('영업이익 P10 (만원, 나쁜 경우)', data.map(d=>d.mc.p10/1e4), v=>n(v), 'up'),
@@ -1185,7 +1457,7 @@ function compareRows(){
   return {rows, data};
 }
 function bestIndex(r){
-  if(ST.sites.length<2) return -1;
+  if(ST.sites.length<2 || !r.better) return -1;
   const vals=r.vals.map((v,i)=>[v==null||!isFinite(v) ? (r.nullWorst ? (r.better==='up'?-Infinity:Infinity) : null) : v, i]).filter(([v])=>v!=null);
   if(vals.length<2) return -1;
   vals.sort((a,b)=>r.better==='up'?b[0]-a[0]:a[0]-b[0]);
@@ -1198,7 +1470,7 @@ function renderCompare(){
   const body = rows.map(r=>{
     if(r.grp) return `<tr class="grp"><td colspan="${ST.sites.length+1}">${r.grp}</td></tr>`;
     const best=bestIndex(r);
-    return `<tr><td>${r.l}</td>${r.vals.map((v,i)=>`<td class="${i===best?'best':''}">${r.fmt(v)}${i===best?'<span class="tag">최고</span>':''}</td>`).join('')}</tr>`;
+    return `<tr><td>${r.l}</td>${r.vals.map((v,i)=>`<td class="${i===best?'best':''}">${r.disp?r.disp(i):r.fmt(v)}${i===best?'<span class="tag">최고</span>':''}</td>`).join('')}</tr>`;
   }).join('');
   document.getElementById('cmpTable').innerHTML = head+'<tbody>'+body+'</tbody>';
 
@@ -1322,6 +1594,146 @@ function renderDeal(){
   legend('lgIrr',res.map(d=>[d.sx.name,colorOf(d.sx),'line'])); ci.update('none');
 }
 
+/* ---------- 오픈업 ---------- */
+function renderOu(){
+  const neu=cssv('--neutral'), txt=cssv('--text'), cA=cssv('--c3'), cB=cssv('--c7'), surf=cssv('--surface');
+  const sites=ST.sites.map(sx=>({sx,band:ouBand(sx),r:calc(sx.p,{basis:'y2'})}));
+  const withBand=sites.filter(d=>d.band);
+  // 1) 보정
+  const labels=[...OU_BRANCH.map(b=>b.n+' (기존)'), ...withBand.map(d=>d.sx.name)];
+  const cc=charts.cCal; cc.data.labels=labels;
+  cc.data.datasets[0].data=[...OU_BRANCH.map(()=>null), ...withBand.map(d=>[d.band.rawLo,d.band.rawHi])];
+  cc.data.datasets[0].backgroundColor=[...OU_BRANCH.map(()=>neu), ...withBand.map(d=>rgba(colorOf(d.sx),.3))];
+  cc.data.datasets[1].data=[...OU_BRANCH.map(b=>[Math.min(b.est,b.act),Math.max(b.est,b.act)]), ...withBand.map(d=>[d.band.lo,d.band.hi])];
+  cc.data.datasets[1].backgroundColor=[...OU_BRANCH.map(()=>neu), ...withBand.map(d=>colorOf(d.sx))];
+  cc.data.datasets[2].data=[...OU_BRANCH.map(b=>b.est), ...withBand.map(()=>null)];
+  cc.data.datasets[3].data=[...OU_BRANCH.map(b=>b.act), ...withBand.map(()=>null)];
+  cc.update('none');
+  legend('lgCal',[['○ 오픈업 1~3월 추정',cssv('--text-2')],['● 실제 1~3월 평균',txt],['후보지: 옅은 막대 오픈업 예상 · 진한 막대 보정 범위',cssv('--text-3')]]);
+  // 2) 월별 추이
+  const jh=PEERS.filter(p=>p.n.startsWith('중앙해장'));
+  const cols={'중앙해장 서초':cA,'중앙해장 광화문':cB};
+  const ct=charts.cTrend;
+  ct.data.datasets=[
+    ...jh.map(p=>({label:p.n+' (오픈업)',data:p.m,borderColor:cols[p.n],backgroundColor:cols[p.n],borderWidth:2,pointRadius:2,tension:0})),
+    ...jh.map(p=>({label:p.n+' 실제',data:JH_ACT[p.n],showLine:false,pointRadius:6,pointStyle:'rectRot',backgroundColor:cols[p.n],borderColor:surf,borderWidth:2})),
+  ];
+  ct.update('none');
+  legend('lgTrend',[['서초 (오픈업 추정)',cA,'line'],['광화문 (오픈업 추정)',cB,'line'],['◆ 실제 결산 (1~3월)',cssv('--text-3')]]);
+  // 3) 시간대·요일
+  const others=PEERS.filter(p=>!p.n.startsWith('중앙해장') && p.m.filter(v=>v!=null).length>=5);
+  const avgArr=(k)=>[0,1,2,3,4,5,6].map(i=>others.reduce((a,p)=>a+p[k][i],0)/others.length);
+  const TOD=['아침','점심','오후','저녁','밤','심야','새벽'], DOW=['월','화','수','목','금','토','일'];
+  for(const [id,k,labs,lg] of [['cTod','tod',TOD,'lgTod'],['cDow','dow',DOW,'lgDow']]){
+    const ch=charts[id]; ch.data.labels=labs;
+    ch.data.datasets=[
+      ...jh.map(p=>({label:p.n,data:p[k],backgroundColor:cols[p.n],borderRadius:4,borderSkipped:false,categoryPercentage:.75,barPercentage:.9})),
+      {label:`주변 매장 ${others.length}곳 평균`,data:avgArr(k),backgroundColor:neu,borderRadius:4,borderSkipped:false,categoryPercentage:.75,barPercentage:.9},
+    ];
+    ch.update('none');
+    legend(lg,[['중앙해장 서초',cA],['중앙해장 광화문',cB],[`을지로·광화문 매장 ${others.length}곳 평균`,neu]]);
+  }
+  // 4) 상권 평균 vs 실제
+  const ca=charts.cArea;
+  ca.data.datasets=[
+    {label:'기존 지점',data:OU_BRANCH.map(b=>({x:b.area,y:b.act,n:b.n})),backgroundColor:neu,borderColor:surf,borderWidth:2,pointRadius:7},
+    ...withBand.filter(d=>isFinite(parseFloat(d.sx.m.avg))).map(d=>({label:d.sx.name,data:[{x:+d.sx.m.avg,y:d.band.mid,n:d.sx.name}],backgroundColor:colorOf(d.sx),borderColor:surf,borderWidth:2,pointRadius:7,pointStyle:'rectRot'})),
+  ];
+  const xs=ca.data.datasets.flatMap(d=>d.data.map(p=>p.x)); ca.options.scales.x.min=0; ca.options.scales.x.max=Math.ceil(Math.max(...xs)*10+3)/10;
+  ca.options.scales.y.min=0; ca.update('none');
+  legend('lgArea',[['기존 지점 (실제)',neu],...withBand.map(d=>[d.sx.name+' (오픈업 보정 중앙)',colorOf(d.sx)])]);
+  // 5) 후보지 손익 @오픈업
+  const co=charts.cOuOp; co.data.labels=withBand.map(d=>d.sx.name);
+  ['lo','mid','hi'].forEach((k,j)=>{ co.data.datasets[j].data=withBand.map(d=>ouAt(d.sx.p,d.band[k]).op/1e4);
+    co.data.datasets[j].backgroundColor=withBand.map(d=>rgba(colorOf(d.sx),[.35,.65,1][j])); });
+  co.update('none');
+  legend('lgOuOp',[['왼쪽부터 보정 하단 · 중앙 · 상단 (색이 진할수록 높은 매출)',cssv('--text-3')]]);
+  // 6) 매장 카드 표
+  const best=m=>{ let bi=-1,bv=-1; m.forEach((v,i)=>{ if(v!=null&&v>bv){bv=v;bi=i;} }); return OU_MONTHS[bi]; };
+  document.getElementById('peerTable').innerHTML = `<thead><tr><th>매장</th><th>업종</th><th>5월 추정 (억)</th><th>1년 평균 (억)</th><th>점심 결제</th><th>저녁~심야 결제</th><th>주말 결제</th><th>최고 월</th></tr></thead><tbody>`+
+    PEERS.map(p=>{ const v=p.m.filter(x=>x!=null), a=v.reduce((s,x)=>s+x,0)/v.length; const jhRow=p.n.startsWith('중앙해장');
+      return `<tr${jhRow?' class="sum"':''}><td>${p.n}</td><td>${p.c}</td><td>${p.may[0]}~${p.may[1]}</td><td>${v.length>=6?a.toFixed(2):'<span style="color:var(--text-3)">신규</span>'}</td><td>${p.tod[1].toFixed(0)}%</td><td>${(p.tod[3]+p.tod[4]+p.tod[5]).toFixed(0)}%</td><td>${(p.dow[5]+p.dow[6]).toFixed(0)}%</td><td>${v.length>=6?best(p.m):'—'}</td></tr>`; }).join('')+'</tbody>';
+  // 7) 인사이트
+  const seo=PEERS.find(p=>p.n==='중앙해장 서초'), gw=PEERS.find(p=>p.n==='중앙해장 광화문');
+  const mean=a=>{ const v=a.filter(x=>x!=null); return v.reduce((s,x)=>s+x,0)/v.length; };
+  const seoMean=mean(seo.m), gwMean=mean(gw.m);
+  const wk=p=>(p.dow[5]+p.dow[6]).toFixed(0);
+  const siteLines = withBand.map(d=>{ const mid=ouAt(d.sx.p,d.band.mid);
+    return `<b>${esc(d.sx.name)}</b> 오픈업 ${d.band.rawLo}~${d.band.rawHi}억 → 보정 ${d.band.lo.toFixed(2)}~${d.band.hi.toFixed(2)}억. 현재 가정 ${eok(d.r.sales)}억은 보정 중앙값의 ${(d.r.sales/1e8/d.band.mid*100).toFixed(0)}%, 중앙값이면 정상화 영업이익 <b>${man(mid.op)}만원</b> (인건비 ${pct(mid.labor/mid.sales,0)} 기준)`; });
+  const ins=[
+    ['정확도', `같은 달(26년 1~3월)끼리 비교하면 실제 매출은 오픈업 추정의 <b>${OU_CAL.lo.toFixed(2)}~${OU_CAL.hi.toFixed(2)}배</b> (평균 ${OU_CAL.mid.toFixed(2)}) — 오픈업은 4개 지점 모두 <b>과대 추정</b>했습니다 (광화문 5%, 서초 13%, 여의도 21%, 마곡 29%). 엑셀 '지점비교'의 오픈업 수치는 7~8월 추정을 1~3월 실적과 맞댄 것이라 실제보다 정확해 보였습니다. 후보지 예상치도 이 비율로 깎아 봤습니다.`],
+    ...siteLines.map(l=>['후보지', l]),
+    ['주말', `중앙해장 주말 결제 비중은 서초 <b>${wk(seo)}%</b>, 광화문 <b>${wk(gw)}%</b>. 엑셀 모델은 주말 매출 0에 평일 하루 매출을 높게 잡아 같은 월매출을 만듭니다. 주말 영업을 하면 매출 구성이 달라지고 주말 인건비도 붙습니다.`],
+    ['시간대', `점심(11~15시) 결제가 서초 ${seo.tod[1].toFixed(0)}%, 광화문 ${gw.tod[1].toFixed(0)}%, 저녁~심야(18~01시)가 ${(seo.tod[3]+seo.tod[4]+seo.tod[5]).toFixed(0)}% · ${(gw.tod[3]+gw.tod[4]+gw.tod[5]).toFixed(0)}%. 건수는 점심이 많고, 저녁은 건당 금액이 커서 엑셀의 '점심 36% · 저녁 54%' 매출 구성과 대체로 맞습니다.`],
+    ['추세', `가맹 지점 4곳의 최근 4개월 추정 매출은 1년 추이의 첫 4개월보다 <b>19~46% 낮습니다</b> (여의도 −46%, 마곡 −44%, 광화문 −27%, 서초 −19%). 같은 기간 본점은 −5%로 유지됐습니다. 계절 탓만은 아니라는 뜻이고, <b>1~3월 실적을 안정 상태로 보기 어렵습니다</b>. 자세한 내용은 '지점·창업 인사이트' 탭에 있습니다.`],
+    ['상권 지표', `소상공인365 업종 평균매출은 지점 매출을 설명하지 못합니다 (상권 평균 최저 마곡 0.52억 → 실제 1.77억, 최고 광화문 0.91억 → 1.83억). GS 블록의 1.53억은 기존 지점 범위(0.52~0.91억) 밖이라 외삽입니다. 후보지 비교는 오픈업 예상 쪽이 더 믿을 만합니다.`],
+    ['동종 비교', `같은 상권 해장국집(여명 광화문해장 0.4~0.6억, 일품양평해장국 0.3~0.5억)과 비교하면 중앙해장은 3~4배를 팝니다. 브랜드 효과는 분명하지만, 그만큼 본사 납품가(원가)·가맹 조건이 수익을 좌우합니다.`],
+  ];
+  document.getElementById('ouInsights').innerHTML = ins.map(([l,t])=>`<li><span class="lab">${l}</span>${t}</li>`).join('');
+}
+
+/* ---------- 지점·창업 인사이트 ---------- */
+const BR_ORDER = ['본점','서초','여의도','광화문','원그로브','송파','압구정'];
+const BR_COLOR = {'본점':'--text','서초':'--c3','여의도':'--c4','광화문':'--c7','원그로브':'--c5'};
+function renderBrand(){
+  const B=CARDS.b, idxSeries=k=>{ const m=B[k].m, f=m.find(v=>v!=null); return m.map(v=>v==null?null:v/f*100); };
+  // 추이 지수
+  const trendKeys=['본점','서초','광화문','여의도','원그로브'];
+  const ct=charts.cBrTrend;
+  ct.data.datasets=trendKeys.map(k=>({label:BR_PROFILE[k].nm,data:idxSeries(k),borderColor:cssv(BR_COLOR[k]),backgroundColor:cssv(BR_COLOR[k]),borderWidth:k==='본점'?3:2,pointRadius:0,tension:0,spanGaps:true}));
+  ct.update('none');
+  legend('lgBrTrend',trendKeys.map(k=>[BR_PROFILE[k].nm+` ${B[k].chg4>0?'+':''}${Math.round(B[k].chg4*100)}%`,cssv(BR_COLOR[k]),'line']));
+  // 시간대 구성
+  const segs=[['아침 05~11',[0]],['점심 11~15',[1]],['오후 15~18',[2]],['저녁 18~22',[3,4]],['심야 22~05',[5,6]]];
+  const ramp=['#86b6ef','#5598e7','#2a78d6','#1c5cab','#104281'];
+  const cb=charts.cBrTod; cb.data.labels=BR_ORDER.map(k=>BR_PROFILE[k].nm);
+  cb.data.datasets=segs.map(([l,ix],j)=>({label:l,data:BR_ORDER.map(k=>ix.reduce((a,i)=>a+B[k].tod[i],0)),backgroundColor:ramp[j],borderColor:cssv('--surface'),borderWidth:{right:2},borderSkipped:false,barPercentage:.7}));
+  cb.$wk=BR_ORDER.map(k=>B[k].dow[5]+B[k].dow[6]);
+  cb.update('none');
+  legend('lgBrTod',segs.map(([l],j)=>[l,ramp[j]]));
+  // 프로필 표
+  const f1=v=>v.toFixed(0)+'%';
+  document.getElementById('brTable').innerHTML = `<thead><tr><th>지점</th><th style="text-align:left">입지 유형</th><th>오픈업 최근 추정</th><th>1년 변화</th><th>점심</th><th>저녁~심야</th><th>주말</th><th style="text-align:left">주 고객</th><th style="text-align:left">웹에서 확인한 특징</th></tr></thead><tbody>`+
+    BR_ORDER.map(k=>{ const b=B[k], pr=BR_PROFILE[k];
+      return `<tr><td><b>${pr.nm}</b></td><td style="text-align:left;white-space:normal;min-width:120px">${pr.type}</td><td>${b.latestLab} ${b.latest[0]}~${b.latest[1]}억</td><td class="${b.chg4<-0.15?'neg':''}">${b.chg4>0?'+':''}${Math.round(b.chg4*100)}%</td><td>${f1(b.tod[1])}</td><td>${f1(b.tod[3]+b.tod[4]+b.tod[5]+b.tod[6])}</td><td>${f1(b.dow[5]+b.dow[6])}</td><td style="text-align:left;white-space:normal;min-width:150px">${pr.cust}</td><td style="text-align:left;white-space:normal;min-width:260px">${pr.web}</td></tr>`; }).join('')+
+    `<tr><td colspan="9" style="text-align:left;color:var(--text-3);white-space:normal">부평중앙해장국(인천, 26년 3월 오픈)은 이름만 비슷한 다른 브랜드로 보여 제외했습니다. 송파·압구정은 매출이 월 0.2~0.3억인 주거지 소형 매장이라 역삼 비교 대상이 아닙니다.</td></tr></tbody>`;
+  // 본사
+  document.getElementById('hqTable').innerHTML = `<thead><tr><th>연도</th><th>매출</th><th>영업이익</th><th>순이익</th></tr></thead><tbody>`+
+    HQ.map(h=>`<tr><td>${h.y}</td><td>${h.rev.toFixed(1)}억</td><td class="${h.op<0?'neg':''}">${h.op.toFixed(1)}억</td><td class="${h.net<0?'neg':''}">${h.net.toFixed(1)}억</td></tr>`).join('')+'</tbody>';
+  document.getElementById('hqNote').innerHTML = `<b>브랜드 배경</b> · 마장동에서 1980년대부터 고기를 팔아 온 육가공업체 '중앙축산'이 2016년 삼성동에 낸 식당이 시작입니다. (주)중앙해장은 2021년 설립(대표 이영호, 주소 = 본점)이며 중앙축산에서 원물을 공급받습니다. 밀키트 브랜드 '중앙식탁'은 하남테크노밸리의 (주)제이에이치컴퍼니가 운영합니다. 서초 결산서에 공장 물류비(매출의 39%)로 나오는 '제이에이지 컴퍼니'가 이 회사로 보입니다.<br><b>주의</b> · 매출은 80억 안팎으로 정체됐고 영업이익은 2024년부터 2년 연속 적자이며 적자 폭이 커지고 있습니다. 이 법인이 가맹본부인지, 본점만 운영하는 법인인지는 정보공개서로 확인해야 합니다.`;
+  document.getElementById('menuTable').innerHTML = '<thead><tr><th>메뉴</th><th>가격 (원)</th></tr></thead><tbody>'+MENU.map(m=>`<tr><td>${m[0]}</td><td>${m[1]}</td></tr>`).join('')+'</tbody>';
+  document.getElementById('menuNote').innerHTML = `대표 메뉴인 양선지해장국은 2019년 9,000원에서 2026년 14,000원으로 <b>56% 올랐습니다</b>. 점심 객단가 16,000원(해장국 + 음료·만두)과 저녁 30,000원(곱창전골 중 67,000원을 2~3명이 나눠 먹고 술 추가)이라는 엑셀 가정은 메뉴판과 맞습니다. 다만 추가로 가격을 올릴 여지는 작습니다.`;
+  // 인사이트
+  const off=['여의도','광화문','원그로브'], offWk=off.map(k=>B[k].dow[5]+B[k].dow[6]);
+  const ins=[
+    ['오픈 효과', `가맹 지점의 최근 4개월 추정 매출은 1년 추이의 첫 4개월보다 서초 −19%, 광화문 −27%, 마곡 −44%, 여의도 −46%입니다. 본점은 −5%로 유지됐습니다. 계절 때문이라면 본점도 같이 빠졌어야 하니, <b>신규 지점은 오픈 초기 매출이 1년에 걸쳐 20~45% 빠진다</b>고 보는 게 안전합니다.`],
+    ['입지 유형', `오피스형(여의도·광화문·마곡)은 점심 결제가 43~54%이고 주말이 ${Math.min(...offWk).toFixed(0)}~${Math.max(...offWk).toFixed(0)}%에 그칩니다. 법조타운과 주거지가 섞인 서초는 주말 ${(B['서초'].dow[5]+B['서초'].dow[6]).toFixed(0)}%로 가장 덜 빠졌습니다. 회식 상권에 24시간 영업하는 본점은 주말 ${(B['본점'].dow[5]+B['본점'].dow[6]).toFixed(0)}%, 22시 이후 ${(B['본점'].tod[5]+B['본점'].tod[6]).toFixed(0)}%입니다. 평일·주말·심야 수요가 고르게 있을수록 매출이 버팁니다.`],
+    ['역삼 적용', `GFC 블록(전문직 오피스, 먹자골목 끝)은 여의도·광화문 같은 <b>오피스형</b>에 가까워 주말이 약하고 오픈 효과가 빠질 위험이 큽니다. GS 블록(회식·유흥 상권, 유동인구 많음)은 저녁·심야가 강한 <b>본점형</b>에 더 가깝습니다. 본점과 같은 강남 회식 수요를 나눠 가질 수도 있습니다.`],
+    ['품질 평판', `리뷰 평점은 본점 4.3, 서초 3.9, 여의도 3.6입니다. 여의도에는 "본점보다 아쉽다", 선지·김치 품질을 지적하는 리뷰가 있습니다. 브랜드 효과는 강하지만(같은 상권 해장국집의 3~4배 매출), 매출을 유지하는 데에는 본점 수준의 품질을 지키는 운영이 필요합니다.`],
+    ['본사 리스크', `(주)중앙해장은 2024년 −3.8억, 2025년 −6.9억으로 2년 연속 영업적자입니다. 본사가 수익을 맞추려고 공급가를 올리면 원가율 39%가 더 오를 수 있습니다. 가맹계약의 공급가 조정 조건과 정보공개서 등록 여부를 먼저 확인해야 합니다.`],
+  ];
+  document.getElementById('brandInsights').innerHTML = ins.map(([l,t])=>`<li><span class="lab">${l}</span>${t}</li>`).join('');
+  // 권고
+  const st=site();
+  const recs=[
+    ['투자 판단은 2년차 매출로', `가맹 지점 추이를 보면 1년 사이 매출이 20~45% 빠졌습니다. 회수기간과 IRR은 오픈 효과가 빠진 뒤 매출로 계산하세요. 지금 '${esc(st.name)}' 설정: ${st.p.decay||0}%.`, `<button class="btn sm" data-apply="decay25">오픈 효과 감소 25% 적용</button> <button class="btn sm" data-apply="decay40">40% 적용</button>`],
+    ['주말·심야 수요가 있는 입지에 가중치', `주말 비중은 오피스형 17~23%, 서초 28%, 본점 36%입니다. GS처럼 회식·유흥 수요가 있으면 주말 영업과 22시 이후 연장을 검토할 만합니다. 반영할 때는 주말 인력(인건비 탭 인원)도 같이 늘려야 합니다.`, `<button class="btn sm" data-apply="weekend">주말 8일·평일 대비 50% 반영</button>`],
+    ['오피스형이면 점심 회전에 집중', `오피스형 지점은 점심 결제가 절반입니다. 예약(캐치테이블·네이버, 여의도는 점심 예약을 받음), 선주문, 빠른 회전(서초 사례) 구조를 오픈 때부터 갖춰야 2.5회전 가정이 성립합니다.`, ''],
+    ['품질 관리 조건을 계약서에', `가맹점 평점(3.6~3.9)이 본점(4.3)보다 낮고, 리뷰에 품질 편차 지적이 있습니다. 본사 주방 교육, 정기 점검, 원물(선지·김치) 공급 품질 기준을 계약에 넣으세요.`, ''],
+    ['본사 재무와 공급가 조건 확인', `본사가 2년 연속 적자입니다. 정보공개서의 가맹점 수와 폐점 수, 공급가 인상 제한, 공급이 중단될 때 대체 조달이 되는지를 확인하세요. 2028년부터는 정보공개서에 지역별 평균매출이 들어갑니다.`, ''],
+    ['본점과의 상권 중복', `삼성역 본점과 역삼역은 약 2km 거리이고 같은 강남 회식 상권입니다. 계약서의 영업지역 보호 범위와, 본점 고객이 넘어오는지 아니면 나눠 갖는지를 따져 보세요.`, ''],
+    ['가격은 이미 높다', `대표 메뉴가 7년 새 56% 올랐습니다. 객단가를 올리려면 가격 인상보다 저녁 전골·수육·주류 비중을 늘리는 쪽이 현실적입니다.`, ''],
+  ];
+  document.getElementById('recList').innerHTML = recs.map(([t,d,btn])=>`<li><b class="t">${t}</b>${d}${btn?'<div>'+btn+'</div>':''}</li>`).join('');
+  document.getElementById('srcList').innerHTML = SOURCES.map(([t,u])=>`<li>${u?`<a href="${u}" target="_blank" rel="noopener">${esc(t)}</a>`:esc(t)}</li>`).join('');
+}
+document.getElementById('recList').addEventListener('click',e=>{
+  const a=e.target.dataset.apply; if(!a) return; const st=site();
+  if(a==='decay25'||a==='decay40'){ const v=a==='decay25'?25:40; setParam('decay',v); syncInputs('decay'); toast(`오픈 효과 감소 ${v}% 반영 · 누적 현금흐름·IRR에 적용됩니다`); }
+  if(a==='weekend'){ st.p.wkDays=8; st.p.wkRatio=50; syncInputs('wkDays'); syncInputs('wkRatio'); toast('주말 8일·평일 대비 50% 반영 · 주말 인력도 함께 조정하세요'); }
+  schedule();
+});
+
 /* ===================== 체크리스트 ===================== */
 const CHECKS=[
   ['로열티 구조','서초점 결산엔 가맹수수료 0원, 본사 납품 39%. 모델은 CK 35% + 가맹 3%. 정보공개서로 확인'],
@@ -1334,6 +1746,9 @@ const CHECKS=[
   ['동업 계약서','지분, 운영자 급여, 추가 출자 의무, 엑시트·원상복구비 부담'],
   ['사업자 형태와 세금','법인 vs 개인 공동사업 (법인세 vs 종합소득세), 세무사 검토'],
   ['후보지별 렌트프리·임대 조건','모든 후보지를 같은 기준으로 재비교'],
+  ['오픈업 후보지 예상매출의 근거','GFC 1.8~2.2억·GS 2.2~2.6억이 어떤 기준(유사 매장·면적·층)으로 나왔는지 확인'],
+  ['가맹 지점 매출 감소 원인','여의도 −46%·마곡 −44%·광화문 −27%·서초 −19% (오픈업, 최근 4개월 vs 1년 추이 첫 4개월). 오픈 효과 소멸인지 상권 요인인지 본사에 실제 월매출로 확인'],
+  ['본사 재무 상태','(주)중앙해장 2024~2025년 영업적자. 가맹본부 법인, 정보공개서 등록, 공급가 인상 조건 확인'],
 ];
 (function(){
   let st={}; try{ st=JSON.parse(localStorage.getItem('jh-checks')||'{}'); }catch(e){}
