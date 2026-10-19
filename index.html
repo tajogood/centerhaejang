@@ -390,9 +390,9 @@ footer{font-size:12px;color:var(--text-3);text-align:center;padding:10px 20px 30
     <div class="tabpane" id="tab-deal">
       <section class="card">
         <h2>동업 수익 배분과 엑시트</h2>
-        <p class="desc">패널 '동업·엑시트' 그룹의 지분·운영기간·권리금 가정 반영. 매월 현금흐름을 전액 배분한다고 가정</p>
+        <p class="desc">패널 '동업·엑시트' 그룹의 지분·운영기간·권리금·배분 방식 가정 반영</p>
         <div class="tablewrap"><table class="pl num" id="dealTable"></table></div>
-        <div class="note">IRR은 오픈 시점 투자(보증금 포함) → 매월 세후 현금흐름(렌트프리·램프업·계절성 반영) → 운영기간 종료 시 보증금·운전자금 회수, 원상복구비 지출, 권리금 회수를 반영한 연환산 수익률입니다. 적자 월은 투자 비율대로 추가 부담하고, 엑시트 정산금도 투자 비율대로 나눈다고 가정했습니다.</div>
+        <div class="note"><b>계산 방식</b> · 운전자금은 회사 완충 현금으로 두고, 적자는 이 현금에서 먼저 메우며 바닥나면 투자 비율대로 추가 출자합니다. 완충 현금을 넘는 현금만 배분합니다. <b>법인 배당</b> 방식은 누적 순이익 한도 안에서만 배당하고 배당소득세를 뗍니다. 감가상각으로 생긴 현금처럼 배당할 수 없는 현금은 회사에 남았다가 엑시트 때 투자 비율로 돌려받습니다. 엑시트 정산에서는 권리금 양도차익(권리금 − 남은 인테리어 장부가)에 법인세를 매깁니다. 월 수령액은 오픈 효과 감소·계절성이 반영된 13~24개월 평균입니다. 프로젝트 IRR은 법인 단위, 내 IRR은 배당세와 배분 비율을 반영한 값입니다. 주주대여금 상환, 이월결손금, 개인 공동사업의 종합소득세는 반영하지 않았습니다.</div>
       </section>
       <div class="grid2">
         <section class="card">
@@ -636,6 +636,8 @@ const GROUPS = [
     {k:'hold', l:'운영기간', u:'개월', min:12, max:120, step:6, c:true},
     {k:'exitPremium', l:'엑시트 시 권리금 회수', u:'만원', min:0, max:40000, step:500, h:'양도 시 받을 권리금 가정'},
     {k:'disc', l:'할인율 (NPV)', u:'%', min:0, max:20, step:0.5, c:true},
+    {k:'distMode', l:'이익 배분 방식', type:'select', c:true, opts:[['div','법인 배당 (순이익 한도·배당세)'],['cash','현금 전액 배분 (세전)']]},
+    {k:'divTax', l:'배당소득세', u:'%', min:0, max:50, step:0.1, c:true, h:'법인 배당 15.4% 원천징수 (금융소득 2천만원 초과 시 종합과세)'},
   ]},
 ];
 const ALL_ITEMS = GROUPS.flatMap(g=>g.items).filter(i=>i.k);
@@ -649,12 +651,12 @@ const EXCEL = {
   delivFreq:3, msA:5, msB:10, delivPrice:20000, delivDays:22,
   rampMonths:0, rampStart:70, openMonth:1, offPeak:0, peak:0, decay:0,
   vat:10, ck:35, veg:4, liq:2.5, sup:1, loss:2,
-  kFte:4, kWage:232.32, hFte:4.5, hWage:241.71, night:0, ins:11.5, sev:8.33, opSalary:0,
+  kFte:4, kWage:232.32, hFte:4.5, hWage:241.70667, night:0, ins:11.5, sev:8.33, opSalary:0,
   rent:1500, rentFree:3, mgmt:100, elec:200, gas:250,
   royalty:3, card:1.5, delivFee:20, rental:75, taxacc:35, mkt:150, insur:40, supplies:80,
   interior:15000, franchise:3750, wc:3000, premium:0, deposit:15000, restore:3000, depMonths:36,
   inclRestore:true, taxMode:'excel', r1:11, r2:22,
-  myInvest:50, myProfit:50, hold:60, exitPremium:0, disc:8,
+  myInvest:50, myProfit:50, hold:60, exitPremium:0, disc:8, distMode:'div', divTax:15.4,
 };
 // 프리셋은 비용 구조 항목만 덮어씀 (점포·매출 고유값 유지, '보수적'은 매출 할인 포함)
 const COST_KEYS = ['vat','ck','veg','liq','sup','loss','kFte','kWage','hFte','hWage','night','ins','sev','card','delivFee','royalty','taxMode','offPeak','decay'];
@@ -785,7 +787,7 @@ function calc(s, opt={}){
   const sga = labor+store+util+fees+other;
 
   const op = sales - vat - cogs - sga;
-  const dep = s.interior*1e4/s.depMonths;
+  const dep = (opt.month!=null && opt.month>s.depMonths) ? 0 : s.interior*1e4/s.depMonths;   // 상각기간이 끝나면 0
   const pretax = op - dep;
   let tax = 0;
   if (pretax>0){
@@ -806,27 +808,55 @@ function seasonFactor(s, m){
   if (cal===12 || cal<=2) return 1 + s.peak/100;
   return 1;
 }
-function monthly(s, months){
+function monthlyR(s, months){
   const out=[];
   for(let m=1;m<=months;m++){
     let ramp=1;
     if(s.rampMonths>0 && m<=s.rampMonths) ramp = s.rampStart/100 + (1-s.rampStart/100)*(m-1)/s.rampMonths;
     const fade = 1 - (s.decay||0)/100*Math.min(m-1,12)/12;
-    out.push(calc(s,{mult:ramp*seasonFactor(s,m)*fade, rentMonth: m<=s.rentFree ? 0 : s.rent*1e4}).cf);
+    out.push(calc(s,{mult:ramp*seasonFactor(s,m)*fade, rentMonth: m<=s.rentFree ? 0 : s.rent*1e4, month:m}));
   }
   return out;
 }
+function monthly(s, months){ return monthlyR(s,months).map(r=>r.cf); }
 function timeline(s, months=60){
   const rec = calc(s).recover, cfs = monthly(s, months);
   let cum=-rec, payback=null; const pts=[{m:0,v:cum}];
   cfs.forEach((cf,i)=>{ const prev=cum; cum+=cf; if(payback===null && cum>=0) payback = i + (cf>0 ? -prev/cf : 0); pts.push({m:i+1,v:cum}); });
   return {pts, payback};
 }
+// 엑시트 정산(운전자금 제외): 보증금 + 권리금 − 원상복구 − 권리금 양도차익 법인세
+function exitSettlement(s, H){
+  const book = s.interior*1e4*Math.max(0, 1 - H/s.depMonths);          // 남은 인테리어 장부가
+  const gain = s.exitPremium*1e4 - book;
+  const tax = Math.max(0, gain) * (s.taxMode==='excel' ? 0.11 : s.r1/100);
+  return {cash:(s.deposit + s.exitPremium - s.restore)*1e4 - tax, tax, book};
+}
 function exitFlows(s, hold){
   const H = hold ?? s.hold;
   const f=[-calc(s).upfront, ...monthly(s,H)];
-  f[H] += (s.deposit + s.wc - s.restore + s.exitPremium)*1e4;
+  f[H] += exitSettlement(s,H).cash + s.wc*1e4;
   return f;
+}
+// 동업자 현금 장부: 운전자금을 회사 완충 현금으로 두고, 적자는 이 현금에서 먼저 메움.
+// 배당 방식은 누적 순이익 한도 내에서만 배분(배당세 공제), 남는 현금(감가상각분 등)은 엑시트 때 투자 비율로 반환.
+function partnerLedger(s, hold){
+  const H = hold ?? s.hold, inv=s.myInvest/100, pr=s.myProfit/100, dt=(s.distMode==='cash'?0:(s.divTax??15.4)/100);
+  const rs = monthlyR(s,H), buf=s.wc*1e4, up=calc(s).upfront;
+  let cash=buf, re=0, calls=0; const my=[-up*inv], myOp=[], co=[], dist=[];
+  rs.forEach((r,i)=>{
+    cash+=r.cf; re+=r.net;
+    let call=0; if(cash<0){ call=-cash; cash=0; calls+=call; }
+    const excess=Math.max(0,cash-buf);
+    const d = s.distMode==='cash' ? excess : Math.min(excess, Math.max(re,0));
+    cash-=d; if(s.distMode!=='cash') re-=d;
+    dist.push(d); co.push(cash);
+    const v=d*(1-dt)*pr - call*inv; my.push(v); myOp.push(v);
+  });
+  const ex=exitSettlement(s,H), final=cash+ex.cash;
+  const liqTax = s.distMode==='cash' ? 0 : Math.max(0,Math.min(re,final))*dt;   // 청산 시 남은 이익잉여금은 배당으로 과세
+  my[H] += (final-liqTax)*inv;
+  return {my, myOp, dist, co, calls, finalCash:cash, exit:ex, liqTax, rs};
 }
 function irrMonthly(f){
   const npv = r => f.reduce((a,v,t)=>a+v/Math.pow(1+r,t),0);
@@ -837,15 +867,7 @@ function irrMonthly(f){
 }
 const annual = r => r==null ? null : Math.pow(1+r,12)-1;
 function npvAt(f, annualRate){ const r=Math.pow(1+annualRate,1/12)-1; return f.reduce((a,v,t)=>a+v/Math.pow(1+r,t),0); }
-function myFlows(s){
-  const f = exitFlows(s), inv=s.myInvest/100, pr=s.myProfit/100, H=s.hold;
-  const exitPart = (s.deposit + s.wc - s.restore + s.exitPremium)*1e4;
-  return f.map((v,t)=>{
-    if(t===0) return v*inv;
-    const op = t===H ? v-exitPart : v;
-    return (op>0 ? op*pr : op*inv) + (t===H ? exitPart*inv : 0);
-  });
-}
+function myFlows(s){ return partnerLedger(s).my; }
 function solve(fn, lo, hi){ // fn 증가함수의 근
   if (fn(hi)<0 || fn(lo)>0) return null;
   for(let i=0;i<60;i++){ const mid=(lo+hi)/2; fn(mid)>=0 ? hi=mid : lo=mid; }
@@ -866,7 +888,7 @@ function monteCarlo(s, mc, basis, seed){
     const ck=tri(R(),-mc.cogs,0,mc.cogs);
     t.lunchTurn*=turn; t.dinnerTurn*=turn; t.lunchPrice*=price; t.dinnerPrice*=price;
     t.msA*=dv; t.msB*=dv; t.kWage*=lab; t.hWage*=lab; t.ck=s.ck+ck;
-    const r=calc(t,{basis}); ops.push(r.op); if(r.cf>0 && r.recover/r.cf<=36) p36++;
+    const r=calc(t,{basis}); ops.push(r.op); if(timeline(t,36).payback!=null) p36++;
   }
   const sorted=[...ops].sort((a,b)=>a-b), q=p=>sorted[Math.min(sorted.length-1,Math.floor(p*sorted.length))];
   return {ops, p10:q(.1), p25:q(.25), p50:q(.5), p75:q(.75), p90:q(.9),
@@ -1355,7 +1377,7 @@ function renderSingle(st,p,r,x,tl){
   const dNeed = solve(t=>calc({...p,dinnerTurn:t},{basis}).op-target, 0, 12);
   const lNeed = solve(t=>calc({...p,lunchTurn:t},{basis}).op-target, 0, 12);
   const g = mNeed==null ? null : calc(p,{basis,mult:mNeed});
-  const curDaily = p.tables*(p.lunchPpl*p.lunchTurn+p.dinnerPpl*p.dinnerTurn);
+  const curDaily = p.tables*(p.lunchPpl*p.lunchTurn+p.dinnerPpl*p.dinnerTurn)*p.season/100;   // 매출 보정 배수 반영
   const daily = mNeed==null ? null : Math.round(curDaily*mNeed);
   document.getElementById('goalOut').innerHTML = [
     ['필요 월매출', g?`${eok(g.sales)}억`:'달성 불가', g?`현재 대비 ${sign(((g.sales/r.sales-1)*100).toFixed(0))}%`:''],
@@ -1558,31 +1580,38 @@ function renderRisk(){
 /* ---------- 동업·엑시트 ---------- */
 function renderDeal(){
   const res=ST.sites.map(sx=>{
-    const p=sx.p, r=calc(p,{basis:'y2'}), f=exitFlows(p), mf=myFlows(p);
+    const p=sx.p, r=calc(p,{basis:'y2'}), f=exitFlows(p), L=partnerLedger(p), mf=L.my, H=p.hold, inv=p.myInvest/100;
     let cum=0; const myPts=[];
     mf.forEach((v,t)=>{ cum+=v; myPts.push({x:t,y:cum/1e6}); });
-    // 내 회수: 엑시트 정산을 빼고, 월 배분만으로 내 몫의 회수 대상 투자금을 넘는 시점
-    const exitPart=(p.deposit+p.wc-p.restore+p.exitPremium)*1e4*p.myInvest/100, need=r.recover*p.myInvest/100;
-    let acc=0, myPay=null;
-    for(let t=1;t<mf.length;t++){ const v = t===mf.length-1 ? mf[t]-exitPart : mf[t]; const prev=acc; acc+=v; if(acc>=need){ myPay=t-1+(need-prev)/(v||1); break; } }
-    return {sx,p,r,irr:annual(irrMonthly(f)), myIrr:annual(irrMonthly(mf)), npv:npvAt(f,p.disc/100), myInv:-mf[0],
-      myMonthly:(r.cf>0?r.cf*p.myProfit/100:r.cf*p.myInvest/100), myPay, myPts, myTotal:cum};
+    // 내 회수: 엑시트 정산을 빼고 월 수령액만으로 내 투자금(보증금 몫 제외)을 넘는 시점
+    const need=(r.upfront-p.deposit*1e4)*inv; let acc=0, myPay=null;
+    for(let t=0;t<L.myOp.length;t++){ const v=L.myOp[t], prev=acc; acc+=v; if(acc>=need && v>0){ myPay=t+(need-prev)/v; break; } }
+    // 안정기(13~24개월) 평균 수령액 · 회사 현금흐름
+    const a0=Math.min(12,H-1), a1=Math.min(24,H); const span=Math.max(1,a1-a0);
+    const myAvg = L.myOp.slice(a0,a1).reduce((x,y)=>x+y,0);
+    const coAvg = L.rs.slice(a0,a1).reduce((x,y)=>x+y.cf,0)/span, netAvg=L.rs.slice(a0,a1).reduce((x,y)=>x+y.net,0)/span;
+    return {sx,p,r,L,irr:annual(irrMonthly(f)), myIrr:annual(irrMonthly(mf)), npv:npvAt(f,p.disc/100), myNpv:npvAt(mf,p.disc/100), myInv:-mf[0],
+      myMonthly:myAvg/span, coAvg, netAvg, myPay, myPts, myTotal:cum, a0, a1};
   });
   const n=v=>Math.round(v/1e4).toLocaleString('ko-KR');
+  const dm=d=>d.p.distMode==='cash'?'현금 전액 (세전)':`법인 배당 (배당세 ${d.p.divTax}%)`;
   document.getElementById('dealTable').innerHTML = `<thead><tr><th>항목</th>${res.map(d=>`<th>${swatch(d.sx)}${esc(d.sx.name)}</th>`).join('')}</tr></thead><tbody>`+
     [
       ['내 투자 / 이익 배분 비율', d=>`${d.p.myInvest}% / ${d.p.myProfit}%`],
+      ['배분 방식', d=>dm(d)],
       ['총 투자 (만원, 보증금 포함)', d=>n(d.r.upfront)],
       ['내 투자금 (만원)', d=>n(d.myInv)],
-      ['내 월 배분 (만원, 정상화)', d=>`<span class="${d.myMonthly<0?'neg':''}">${n(d.myMonthly)}</span>`],
-      ['내 연 수익률 (배분 ÷ 투자)', d=>d.myInv>0?pct(d.myMonthly*12/d.myInv):'—'],
+      ['회사 월 현금흐름 (만원, 13~24개월 평균)', d=>`<span class="${d.coAvg<0?'neg':''}">${n(d.coAvg)}</span> <small style="color:var(--text-3)">순이익 ${n(d.netAvg)}</small>`],
+      ['내 월 수령액 (만원, 13~24개월 평균)', d=>`<span class="${d.myMonthly<0?'neg':''}">${n(d.myMonthly)}</span>`],
+      ['내 연 수익률 (수령액 ÷ 투자)', d=>d.myInv>0?pct(d.myMonthly*12/d.myInv):'—'],
       ['내 투자 회수 (개월, 보증금 제외)', d=>d.myPay==null?'<span class="neg">운영기간 내 미회수</span>':d.myPay.toFixed(1)],
+      ['적자 보전 추가 출자 (만원, 전체)', d=>d.L.calls>0?`<span class="neg">${n(d.L.calls)}</span>`:'없음'],
       ['운영기간', d=>`${d.p.hold}개월`],
-      ['엑시트 정산 (만원)', d=>n((d.p.deposit+d.p.wc-d.p.restore+d.p.exitPremium)*1e4)+`<br><small style="color:var(--text-3)">보증금+운전자금−원상복구+권리금</small>`],
+      ['엑시트 정산 (만원)', d=>n(d.L.exit.cash+d.L.finalCash)+`<br><small style="color:var(--text-3)">보증금+권리금−원상복구${d.L.exit.tax>0?'−양도차익 법인세 '+n(d.L.exit.tax):''} + 회사 잔여현금 ${n(d.L.finalCash)}${d.L.liqTax>0?' (청산 배당세 '+n(d.L.liqTax)+')':''}</small>`],
       ['내 순수익 합계 (만원)', d=>`<span class="${d.myTotal<0?'neg':'pos'}">${n(d.myTotal)}</span>`],
-      ['프로젝트 IRR (연)', d=>d.irr==null?'—':`<span class="${d.irr<0?'neg':''}">${pct(d.irr)}</span>`],
-      ['내 IRR (연)', d=>d.myIrr==null?'—':`<span class="${d.myIrr<0?'neg':''}">${pct(d.myIrr)}</span>`],
-      ['프로젝트 NPV (만원)', d=>`<span class="${d.npv<0?'neg':''}">${n(d.npv)}</span> <small style="color:var(--text-3)">@${d.p.disc}%</small>`],
+      ['프로젝트 IRR (연, 법인 기준)', d=>d.irr==null?'—':`<span class="${d.irr<0?'neg':''}">${pct(d.irr)}</span>`],
+      ['내 IRR (연, 배당세 반영)', d=>d.myIrr==null?'—':`<span class="${d.myIrr<0?'neg':''}">${pct(d.myIrr)}</span>`],
+      ['프로젝트 / 내 NPV (만원)', d=>`<span class="${d.npv<0?'neg':''}">${n(d.npv)}</span> / <span class="${d.myNpv<0?'neg':''}">${n(d.myNpv)}</span> <small style="color:var(--text-3)">@${d.p.disc}%</small>`],
     ].map(([l,f])=>`<tr><td>${l}</td>${res.map(d=>`<td>${f(d)}</td>`).join('')}</tr>`).join('')+'</tbody>';
   const cm=charts.cMyCum;
   cm.data.datasets=res.map(d=>({label:d.sx.name,data:d.myPts,borderColor:colorOf(d.sx),borderWidth:2,pointRadius:0,tension:0}));
@@ -1661,7 +1690,7 @@ function renderOu(){
   const siteLines = withBand.map(d=>{ const mid=ouAt(d.sx.p,d.band.mid);
     return `<b>${esc(d.sx.name)}</b> 오픈업 ${d.band.rawLo}~${d.band.rawHi}억 → 보정 ${d.band.lo.toFixed(2)}~${d.band.hi.toFixed(2)}억. 현재 가정 ${eok(d.r.sales)}억은 보정 중앙값의 ${(d.r.sales/1e8/d.band.mid*100).toFixed(0)}%, 중앙값이면 정상화 영업이익 <b>${man(mid.op)}만원</b> (인건비 ${pct(mid.labor/mid.sales,0)} 기준)`; });
   const ins=[
-    ['정확도', `같은 달(26년 1~3월)끼리 비교하면 실제 매출은 오픈업 추정의 <b>${OU_CAL.lo.toFixed(2)}~${OU_CAL.hi.toFixed(2)}배</b> (평균 ${OU_CAL.mid.toFixed(2)}) — 오픈업은 4개 지점 모두 <b>과대 추정</b>했습니다 (광화문 5%, 서초 13%, 여의도 21%, 마곡 29%). 엑셀 '지점비교'의 오픈업 수치는 7~8월 추정을 1~3월 실적과 맞댄 것이라 실제보다 정확해 보였습니다. 후보지 예상치도 이 비율로 깎아 봤습니다.`],
+    ['정확도', `같은 달(26년 1~3월)끼리 비교하면 실제 매출은 오픈업 추정의 <b>${OU_CAL.lo.toFixed(2)}~${OU_CAL.hi.toFixed(2)}배</b> (평균 ${OU_CAL.mid.toFixed(2)}) — 오픈업은 4개 지점 모두 <b>과대 추정</b>했습니다 (실제가 추정보다 광화문 5%, 서초 13%, 여의도 21%, 마곡 29% 낮음). 엑셀 '지점비교'의 오픈업 수치는 7~8월 추정을 1~3월 실적과 맞댄 것이라 실제보다 정확해 보였습니다. 후보지 예상치도 이 비율로 깎아 봤습니다.`],
     ...siteLines.map(l=>['후보지', l]),
     ['주말', `중앙해장 주말 결제 비중은 서초 <b>${wk(seo)}%</b>, 광화문 <b>${wk(gw)}%</b>. 엑셀 모델은 주말 매출 0에 평일 하루 매출을 높게 잡아 같은 월매출을 만듭니다. 주말 영업을 하면 매출 구성이 달라지고 주말 인건비도 붙습니다.`],
     ['시간대', `점심(11~15시) 결제가 서초 ${seo.tod[1].toFixed(0)}%, 광화문 ${gw.tod[1].toFixed(0)}%, 저녁~심야(18~01시)가 ${(seo.tod[3]+seo.tod[4]+seo.tod[5]).toFixed(0)}% · ${(gw.tod[3]+gw.tod[4]+gw.tod[5]).toFixed(0)}%. 건수는 점심이 많고, 저녁은 건당 금액이 커서 엑셀의 '점심 36% · 저녁 54%' 매출 구성과 대체로 맞습니다.`],
@@ -1693,7 +1722,7 @@ function renderBrand(){
   legend('lgBrTod',segs.map(([l],j)=>[l,ramp[j]]));
   // 프로필 표
   const f1=v=>v.toFixed(0)+'%';
-  document.getElementById('brTable').innerHTML = `<thead><tr><th>지점</th><th style="text-align:left">입지 유형</th><th>오픈업 최근 추정</th><th>1년 변화</th><th>점심</th><th>저녁~심야</th><th>주말</th><th style="text-align:left">주 고객</th><th style="text-align:left">웹에서 확인한 특징</th></tr></thead><tbody>`+
+  document.getElementById('brTable').innerHTML = `<thead><tr><th>지점</th><th style="text-align:left">입지 유형</th><th>오픈업 최근 추정</th><th>1년 변화</th><th>점심</th><th>저녁~새벽 (18~05시)</th><th>주말</th><th style="text-align:left">주 고객</th><th style="text-align:left">웹에서 확인한 특징</th></tr></thead><tbody>`+
     BR_ORDER.map(k=>{ const b=B[k], pr=BR_PROFILE[k];
       return `<tr><td><b>${pr.nm}</b></td><td style="text-align:left;white-space:normal;min-width:120px">${pr.type}</td><td>${b.latestLab} ${b.latest[0]}~${b.latest[1]}억</td><td class="${b.chg4<-0.15?'neg':''}">${b.chg4>0?'+':''}${Math.round(b.chg4*100)}%</td><td>${f1(b.tod[1])}</td><td>${f1(b.tod[3]+b.tod[4]+b.tod[5]+b.tod[6])}</td><td>${f1(b.dow[5]+b.dow[6])}</td><td style="text-align:left;white-space:normal;min-width:150px">${pr.cust}</td><td style="text-align:left;white-space:normal;min-width:260px">${pr.web}</td></tr>`; }).join('')+
     `<tr><td colspan="9" style="text-align:left;color:var(--text-3);white-space:normal">부평중앙해장국(인천, 26년 3월 오픈)은 이름만 비슷한 다른 브랜드로 보여 제외했습니다. 송파·압구정은 매출이 월 0.2~0.3억인 주거지 소형 매장이라 역삼 비교 대상이 아닙니다.</td></tr></tbody>`;
